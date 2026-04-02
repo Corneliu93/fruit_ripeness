@@ -1,0 +1,16 @@
+tensorflow==2.11.0
+numpy==1.23.5
+scikit-learn==1.2.2
+pandas==1.5.3
+matplotlib==3.7.1
+seaborn==0.12.2
+opencv-python==4.7.0.72
+Pillow==9.4.0
+Flask==2.2.3
+Werkzeug==2.2.3
+tf-explain==0.3.1
+tqdm==4.65.0
+ipykernel==6.22.0
+notebook==6.5.4
+jupyterlab==3.6.3
+h5py==3.8.0

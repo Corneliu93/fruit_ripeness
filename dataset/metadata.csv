@@ -1,0 +1,10 @@
+filename,fruit,stage,class_label,class_idx,width,height,channels (RGB),source,notes
+apple_unripe_001.jpg,apple,unripe,apple_unripe,0,224,224,3,real_capture,
+apple_ripe_001.jpg,apple,ripe,apple_ripe,1,224,224,3,real_capture,
+apple_overripe_001.jpg,apple,overripe,apple_overripe,2,224,224,3,real_capture,
+banana_unripe_001.jpg,banana,unripe,banana_unripe,3,224,224,3,real_capture,
+banana_ripe_001.jpg,banana,ripe,banana_ripe,4,224,224,3,real_capture,
+banana_overripe_001.jpg,banana,overripe,banana_overripe,5,224,224,3,real_capture,
+pear_unripe_001.jpg,pear,unripe,pear_unripe,6,224,224,3,real_capture,
+pear_ripe_001.jpg,pear,ripe,pear_ripe,7,224,224,3,real_capture,
+pear_overripe_001.jpg,pear,overripe,pear_overripe,8,224,224,3,real_capture,

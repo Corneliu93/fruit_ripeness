@@ -1,0 +1,60 @@
+MANIFEST – Week 1
+=================
+Project: Image-based Fruit Ripeness Classification
+Week: 1 / 10
+Date: 2026
+
+FILES DELIVERED:
+----------------
+README.md                                  – Project documentation + run commands
+requirements.txt                           – Exact Python dependencies
+.gitignore                                 – Git ignore patterns
+
+dataset/
+  capture_instructions.md                 – Photo capture protocol for student
+  metadata.csv                            – Dataset metadata template (to be updated)
+  apple/unripe/                           – Empty folder (to be filled)
+  apple/ripe/                             – Empty folder (to be filled)
+  apple/overripe/                         – Empty folder (to be filled)
+  banana/unripe/                          – Empty folder (to be filled)
+  banana/ripe/                            – Empty folder (to be filled)
+  banana/overripe/                        – Empty folder (to be filled)
+  pear/unripe/                            – Empty folder (to be filled)
+  pear/ripe/                              – Empty folder (to be filled)
+  pear/overripe/                          – Empty folder (to be filled)
+
+dataset_check.py                          – Dataset validation + visualization
+
+src/
+  utils.py                                – Shared utilities, seeds, constants
+  models.py                               – BaselineCNN + MobileNetV2 architectures
+  train.py                                – Training script (CLI args)
+  evaluate.py                             – Evaluation: metrics, confusion matrix, ROC, Grad-CAM
+  data_pipeline.py                        – tf.data pipeline + augmentation + synthetic generator
+
+web_app/
+  app.py                                  – Flask demo application
+  templates/index.html                    – Web UI for image upload + prediction
+
+manifest.txt                              – This file
+
+PENDING (future weeks):
+-----------------------
+notebooks/01_data_preprocessing.ipynb    – Week 2
+notebooks/02_train_baseline.ipynb        – Week 3
+notebooks/03_train_mobilenet.ipynb       – Week 5-6
+notebooks/04_evaluation.ipynb            – Week 7
+saved_models/baseline_best.h5            – Week 3
+saved_models/mobilenet_phase1.h5         – Week 5
+saved_models/mobilenet_finetuned.h5      – Week 6
+results/results.csv                      – Week 7
+report.pdf / report.md                   – Week 9
+slides.pdf                               – Week 9
+final_submission.zip                     – Week 10
+
+REPRODUCE EVALUATION (after all training):
+------------------------------------------
+python src/evaluate.py \
+  --model_path saved_models/mobilenet_finetuned.h5 \
+  --data_dir ./dataset \
+  --output results/

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍎 Fruit Ripeness Classifier</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #333; }
+
+        header {
+            background: linear-gradient(135deg, #2d6a4f, #40916c);
+            color: white; padding: 20px 40px;
+            display: flex; align-items: center; gap: 14px;
+        }
+        header h1 { font-size: 1.6rem; }
+        header p  { font-size: 0.9rem; opacity: 0.85; margin-top: 4px; }
+
+        .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
+
+        .card {
+            background: white; border-radius: 12px;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+            padding: 28px; margin-bottom: 24px;
+        }
+
+        .upload-area {
+            border: 3px dashed #b7e4c7; border-radius: 12px;
+            padding: 40px; text-align: center; cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .upload-area:hover, .upload-area.drag-over {
+            border-color: #40916c; background: #f0faf4;
+        }
+        .upload-area input[type=file] { display: none; }
+        .upload-icon { font-size: 3rem; margin-bottom: 10px; }
+        .upload-area p { color: #666; margin-top: 8px; font-size: 0.9rem; }
+
+        .btn {
+            background: #2d6a4f; color: white;
+            border: none; padding: 12px 28px;
+            border-radius: 8px; cursor: pointer;
+            font-size: 1rem; margin-top: 16px;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: #40916c; }
+        .btn:disabled { background: #aaa; cursor: not-allowed; }
+
+        #preview-img {
+            max-height: 280px; max-width: 100%;
+            border-radius: 8px; margin-top: 16px;
+            display: none; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .spinner {
+            display: none; text-align: center;
+            padding: 20px; color: #40916c; font-size: 1rem;
+        }
+
+        .result-card { display: none; }
+
+        .top-pred {
+            display: flex; align-items: center; gap: 16px;
+            background: #f0faf4; border-radius: 10px;
+            padding: 16px 20px; margin-bottom: 20px;
+        }
+        .fruit-emoji { font-size: 2.5rem; }
+        .pred-class  { font-size: 1.4rem; font-weight: 700; color: #1b4332; }
+        .pred-conf   { font-size: 1rem; color: #40916c; margin-top: 4px; }
+
+        .top3-title  { font-weight: 600; margin-bottom: 10px; color: #555; }
+        .bar-row     { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .bar-label   { width: 160px; font-size: 0.85rem; color: #444; text-align: right; }
+        .bar-track   { flex: 1; height: 18px; background: #e8f5e9; border-radius: 9px; overflow: hidden; }
+        .bar-fill    { height: 100%; background: linear-gradient(90deg, #40916c, #74c69d); border-radius: 9px; transition: width 0.6s ease; }
+        .bar-pct     { width: 48px; font-size: 0.85rem; color: #555; }
+
+        .all-probs-title { font-weight: 600; margin: 20px 0 10px; color: #555; }
+        .grid-probs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .prob-chip {
+            background: #f8f9fa; border-radius: 8px;
+            padding: 10px 12px; font-size: 0.82rem;
+        }
+        .prob-chip .cls   { font-weight: 600; color: #1b4332; }
+        .prob-chip .pct   { color: #555; margin-top: 3px; }
+
+        .error-box {
+            display: none; background: #fff0f0;
+            border: 1px solid #ffb3b3; border-radius: 8px;
+            padding: 16px; color: #c0392b; margin-top: 16px;
+        }
+
+        footer { text-align: center; padding: 20px; color: #888; font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div>
+        <h1>🍎 Fruit Ripeness Classifier</h1>
+        <p>Upload an image of an apple, banana, or pear to detect its ripeness stage</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- Upload Card -->
+    <div class="card">
+        <h2 style="margin-bottom: 16px; color: #1b4332;">Upload Image</h2>
+
+        <div class="upload-area" id="dropzone">
+            <div class="upload-icon">📸</div>
+            <strong>Drag & drop or click to upload</strong>
+            <p>Supported formats: JPG, PNG, BMP, WEBP · Max 16 MB</p>
+            <input type="file" id="file-input" accept="image/*">
+        </div>
+
+        <div style="text-align: center;">
+            <img id="preview-img" src="" alt="Preview">
+            <br>
+            <button class="btn" id="predict-btn" disabled>🔍 Classify</button>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="spinner" id="spinner">
+        ⏳ Analysing image...
+    </div>
+
+    <!-- Error -->
+    <div class="error-box" id="error-box"></div>
+
+    <!-- Result Card -->
+    <div class="card result-card" id="result-card">
+        <h2 style="margin-bottom: 16px; color: #1b4332;">Prediction Result</h2>
+
+        <div class="top-pred">
+            <div class="fruit-emoji" id="result-emoji">🍎</div>
+            <div>
+                <div class="pred-class" id="result-class">—</div>
+                <div class="pred-conf"  id="result-conf">—</div>
+            </div>
+        </div>
+
+        <div class="top3-title">Top 3 predictions</div>
+        <div id="top3-bars"></div>
+
+        <div class="all-probs-title">All class probabilities</div>
+        <div class="grid-probs" id="all-probs-grid"></div>
+    </div>
+
+</div>
+
+<footer>Fruit Ripeness Classification · Deep Learning Project · 2025–2026</footer>
+
+<script>
+const EMOJI_MAP = {
+    apple:  "🍎",
+    banana: "🍌",
+    pear:   "🍐",
+};
+
+const dropzone   = document.getElementById("dropzone");
+const fileInput  = document.getElementById("file-input");
+const previewImg = document.getElementById("preview-img");
+const predictBtn = document.getElementById("predict-btn");
+const spinner    = document.getElementById("spinner");
+const resultCard = document.getElementById("result-card");
+const errorBox   = document.getElementById("error-box");
+
+let selectedFile = null;
+
+dropzone.addEventListener("click",      () => fileInput.click());
+dropzone.addEventListener("dragover",   e => { e.preventDefault(); dropzone.classList.add("drag-over"); });
+dropzone.addEventListener("dragleave",  () => dropzone.classList.remove("drag-over"));
+dropzone.addEventListener("drop",       e => {
+    e.preventDefault();
+    dropzone.classList.remove("drag-over");
+    handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener("change",    e => handleFile(e.target.files[0]));
+predictBtn.addEventListener("click",    runPrediction);
+
+function handleFile(file) {
+    if (!file || !file.type.startsWith("image/")) return;
+    selectedFile    = file;
+    const reader    = new FileReader();
+    reader.onload   = e => {
+        previewImg.src     = e.target.result;
+        previewImg.style.display = "block";
+    };
+    reader.readAsDataURL(file);
+    predictBtn.disabled = false;
+    resultCard.style.display = "none";
+    errorBox.style.display   = "none";
+}
+
+async function runPrediction() {
+    if (!selectedFile) return;
+    predictBtn.disabled  = true;
+    spinner.style.display = "block";
+    resultCard.style.display = "none";
+    errorBox.style.display   = "none";
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+
+    try {
+        const resp = await fetch("/predict", { method: "POST", body: formData });
+        const data = await resp.json();
+
+        if (data.error) throw new Error(data.error);
+        renderResult(data);
+    } catch (err) {
+        errorBox.textContent = "❌ Error: " + err.message;
+        errorBox.style.display = "block";
+    } finally {
+        spinner.style.display = "none";
+        predictBtn.disabled   = false;
+    }
+}
+
+function renderResult(data) {
+    const fruit = data.top_class.split("_")[0];
+    document.getElementById("result-emoji").textContent = EMOJI_MAP[fruit] || "🍊";
+    document.getElementById("result-class").textContent = data.top_class.replace(/_/g, " ");
+    document.getElementById("result-conf").textContent  = `Confidence: ${data.confidence.toFixed(1)}%`;
+
+    // Top 3 bars
+    const barsEl = document.getElementById("top3-bars");
+    barsEl.innerHTML = data.top3.map(item => `
+        <div class="bar-row">
+            <div class="bar-label">${item.class.replace(/_/g, " ")}</div>
+            <div class="bar-track">
+                <div class="bar-fill" style="width: ${item.confidence}%"></div>
+            </div>
+            <div class="bar-pct">${item.confidence.toFixed(1)}%</div>
+        </div>
+    `).join("");
+
+    // All probs grid
+    const gridEl = document.getElementById("all-probs-grid");
+    gridEl.innerHTML = Object.entries(data.all_probs)
+        .sort((a, b) => b[1] - a[1])
+        .map(([cls, pct]) => `
+            <div class="prob-chip">
+                <div class="cls">${cls.replace(/_/g, " ")}</div>
+                <div class="pct">${pct.toFixed(2)}%</div>
+            </div>
+        `).join("");
+
+    resultCard.style.display = "block";
+    resultCard.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,164 @@
+# Dataset Capture Instructions
+
+## Overview
+You need to photograph **3 fruits** (apple, banana, pear) at **3 ripeness stages** each.
+- **Target:** 25 images per class
+- **Minimum acceptable:** 15 images per class
+- **Total images needed:** 225 (target) / 135 (minimum)
+
+---
+
+## Equipment
+- Smartphone camera (12MP+ recommended) or DSLR
+- White or light grey background (A3 paper sheet works perfectly)
+- Natural diffuse light (near a window, not direct sunlight) OR a desk lamp with a diffuser
+- Ruler/tape measure (to maintain consistent distance)
+
+---
+
+## Setup
+
+```
+[Diffuse light source]
+         ↓
+[Fruit on white/grey surface]
+         ↑
+[Camera at 40–50 cm, frontal angle, tripod or stable support]
+```
+
+1. Place white/grey A3 paper flat on a table
+2. Ensure diffuse (soft, no harsh shadows) lighting from above or slightly to the side
+3. Hold camera at **40–50 cm** distance, **frontal/top-down angle**
+4. Use a phone stand or lean phone against a book for stability
+
+---
+
+## Ripeness Guide
+
+### 🍎 Apple
+| Stage | Visual cues |
+|-------|-------------|
+| **Unripe** | Bright green, very firm, no give when pressed |
+| **Ripe** | Red/green mix, slightly yielding when pressed |
+| **Overripe** | Brown spots, soft, wrinkled skin, dark patches |
+
+### 🍌 Banana
+| Stage | Visual cues |
+|-------|-------------|
+| **Unripe** | Fully green, very firm |
+| **Ripe** | Fully yellow, slight black tips OK |
+| **Overripe** | Brown/black spots covering >50% of skin, very soft |
+
+### 🍐 Pear
+| Stage | Visual cues |
+|-------|-------------|
+| **Unripe** | Firm, greenish, no give when pressed near stem |
+| **Ripe** | Slight give near stem, yellowish-green color |
+| **Overripe** | Very soft, dark spots, wrinkled, strong smell |
+
+---
+
+## Capture Protocol
+
+### For each class (e.g., apple/ripe):
+1. Take **5 photos per position** variation:
+   - Front view (stem pointing up)
+   - Front view (rotated 45° clockwise)
+   - Front view (rotated 45° counter-clockwise)
+   - Slightly angled (15° tilt)
+   - Close-up (25–30 cm distance)
+
+2. Vary lighting slightly between sets (move lamp slightly, use different time of day)
+
+3. Take 5–10 extra shots for safety — keep the best 25
+
+### Settings
+- Resolution: **max available** (we will resize to 224×224 in preprocessing)
+- Flash: **OFF** (use ambient/diffuse light only)
+- HDR: **ON** if available
+- Keep EXIF data (do NOT strip metadata)
+- Save as **JPG** (quality 90%+) or **PNG**
+
+---
+
+## File Naming Convention
+
+```
+{fruit}_{stage}_{sequence:03d}.jpg
+```
+
+Examples:
+```
+apple_unripe_001.jpg
+apple_unripe_002.jpg
+banana_ripe_015.jpg
+pear_overripe_007.jpg
+```
+
+---
+
+## Folder Structure
+
+Place images directly into the corresponding folder:
+
+```
+dataset/
+├── apple/
+│   ├── unripe/     ← apple_unripe_001.jpg ... apple_unripe_025.jpg
+│   ├── ripe/       ← apple_ripe_001.jpg ... apple_ripe_025.jpg
+│   └── overripe/   ← apple_overripe_001.jpg ... apple_overripe_025.jpg
+├── banana/
+│   ├── unripe/
+│   ├── ripe/
+│   └── overripe/
+└── pear/
+    ├── unripe/
+    ├── ripe/
+    └── overripe/
+```
+
+---
+
+## Quality Checklist (per image)
+
+- [ ] Background is white or light grey (no clutter)
+- [ ] Fruit is in focus (sharp, not blurry)
+- [ ] No harsh shadows cutting across the fruit
+- [ ] Fruit fills ~60–70% of the frame
+- [ ] Distance is approximately 40–50 cm
+- [ ] No finger/hand visible in frame
+- [ ] Image is right-side up
+
+---
+
+## After Capture
+
+Run the validation script to check your dataset:
+
+```bash
+python dataset_check.py
+```
+
+This will:
+1. Count images per class
+2. Check image dimensions
+3. Display 3 sample images per class
+4. Report any classes with fewer than 15 images
+
+---
+
+## Timeline
+
+Recommended capture schedule (≈2 hours total):
+- Session 1 (45 min): Apple (unripe → ripe → overripe)
+- Session 2 (45 min): Banana + Pear
+- Session 3 (30 min): Retakes for any class with <15 images
+
+---
+
+## ⚠️ Important Notes
+
+1. **Buy fruits at different stages** — you may need to purchase bananas and wait 3–5 days for overripe stage
+2. **Buy multiple apples/pears** — pick unripe (green) AND ripe from store; leave some out to over-ripen for 3–4 days
+3. **Consistency matters** — try to use the same background and lighting setup for all sessions
+4. **Raw originals** — keep originals in a separate backup folder BEFORE running any scripts
