@@ -39,8 +39,8 @@ CLASS_LABELS = [
 ]
 
 VALID_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
-TARGET_IMAGES    = 25
-MIN_IMAGES       = 15
+TARGET_IMAGES    = 50
+MIN_IMAGES       = 25
 
 
 # ──────────────────────────────────────────────
