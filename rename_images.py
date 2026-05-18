@@ -1,7 +1,3 @@
-"""
-rename_images.py — versiunea sigură, înlocuiește versiunea anterioară
-"""
-
 import os
 import argparse
 from pathlib import Path
