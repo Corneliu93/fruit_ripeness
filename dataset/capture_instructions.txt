@@ -2,9 +2,9 @@
 
 ## Overview
 You need to photograph **3 fruits** (apple, banana, pear) at **3 ripeness stages** each.
-- **Target:** 25 images per class
-- **Minimum acceptable:** 15 images per class
-- **Total images needed:** 225 (target) / 135 (minimum)
+- **Target:** 50 images per class
+- **Minimum acceptable:** 25 images per class
+- **Total images needed:** 450 (target) / 225 (minimum)
 
 ---
 
@@ -70,7 +70,7 @@ You need to photograph **3 fruits** (apple, banana, pear) at **3 ripeness stages
 
 2. Vary lighting slightly between sets (move lamp slightly, use different time of day)
 
-3. Take 5–10 extra shots for safety — keep the best 25
+3. Take 5–10 extra shots for safety — keep the best 40
 
 ### Settings
 - Resolution: **max available** (we will resize to 224×224 in preprocessing)
@@ -104,9 +104,9 @@ Place images directly into the corresponding folder:
 ```
 dataset/
 ├── apple/
-│   ├── unripe/     ← apple_unripe_001.jpg ... apple_unripe_025.jpg
-│   ├── ripe/       ← apple_ripe_001.jpg ... apple_ripe_025.jpg
-│   └── overripe/   ← apple_overripe_001.jpg ... apple_overripe_025.jpg
+│   ├── unripe/     ← apple_unripe_001.jpg ... apple_unripe_050.jpg
+│   ├── ripe/       ← apple_ripe_001.jpg ... apple_ripe_050.jpg
+│   └── overripe/   ← apple_overripe_001.jpg ... apple_overripe_050.jpg
 ├── banana/
 │   ├── unripe/
 │   ├── ripe/
@@ -160,5 +160,5 @@ Recommended capture schedule (≈2 hours total):
 
 1. **Buy fruits at different stages** — you may need to purchase bananas and wait 3–5 days for overripe stage
 2. **Buy multiple apples/pears** — pick unripe (green) AND ripe from store; leave some out to over-ripen for 3–4 days
-3. **Consistency matters** — try to use the same background and lighting setup for all sessions
-4. **Raw originals** — keep originals in a separate backup folder BEFORE running any scripts
+3. **Consistency matters** - try to use the same background and lighting setup for all sessions
+4. **Raw originals** - keep originals in a separate backup folder BEFORE running any scripts
