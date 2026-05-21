@@ -9,9 +9,9 @@ Supports:
     - MobileNetV2 Phase 2 (fine-tuning)
 
 Usage:
-    python src/train.py --model baseline --data_dir ./dataset --batch_size 16 --epochs 50 --seed 42
-    python src/train.py --model mobilenet --phase phase1 --data_dir ./dataset --batch_size 16 --epochs 20
-    python src/train.py --model mobilenet --phase finetune --data_dir ./dataset --batch_size 16 --epochs 20
+    python src/train.py --model baseline --data_dir ./dataset --batch_size 32 --epochs 50 --seed 42
+    python src/train.py --model mobilenet --phase phase1 --data_dir ./dataset --batch_size 32 --epochs 20
+    python src/train.py --model mobilenet --phase finetune --data_dir ./dataset --batch_size 32 --epochs 20
 """
 
 import os
