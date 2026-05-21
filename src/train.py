@@ -282,8 +282,8 @@ def parse_args():
         help="Root directory of the dataset"
     )
     parser.add_argument(
-        "--batch_size", type=int, default=16,
-        help="Batch size (default: 16)"
+        "--batch_size", type=int, default=32,
+        help="Batch size (default: 32)"
     )
     parser.add_argument(
         "--epochs", type=int, default=50,

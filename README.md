@@ -72,17 +72,17 @@ See `dataset/capture_instructions.md` for photo capture protocol.
 
 ### Baseline CNN
 ```bash
-python src/train.py --model baseline --data_dir ./dataset --batch_size 16 --epochs 50 --seed 42
+python src/train.py --model baseline --data_dir ./dataset --batch_size 32 --epochs 50 --seed 42
 ```
 
 ### MobileNetV2 Phase 1 (frozen base)
 ```bash
-python src/train.py --model mobilenet --phase phase1 --data_dir ./dataset --batch_size 16 --epochs 20
+python src/train.py --model mobilenet --phase phase1 --data_dir ./dataset --batch_size 32 --epochs 20
 ```
 
 ### MobileNetV2 Fine-tuning (unfreeze top 20%)
 ```bash
-python src/train.py --model mobilenet --phase finetune --data_dir ./dataset --batch_size 16 --epochs 20
+python src/train.py --model mobilenet --phase finetune --data_dir ./dataset --batch_size 32 --epochs 20
 ```
 
 ---
