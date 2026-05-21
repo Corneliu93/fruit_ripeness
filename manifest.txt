@@ -11,17 +11,17 @@ requirements.txt                           – Exact Python dependencies
 .gitignore                                 – Git ignore patterns
 
 dataset/
-  capture_instructions.md                 – Photo capture protocol for student
-  metadata.csv                            – Dataset metadata template (to be updated)
-  apple/unripe/                           – Empty folder (to be filled)
-  apple/ripe/                             – Empty folder (to be filled)
-  apple/overripe/                         – Empty folder (to be filled)
-  banana/unripe/                          – Empty folder (to be filled)
-  banana/ripe/                            – Empty folder (to be filled)
-  banana/overripe/                        – Empty folder (to be filled)
-  pear/unripe/                            – Empty folder (to be filled)
-  pear/ripe/                              – Empty folder (to be filled)
-  pear/overripe/                          – Empty folder (to be filled)
+  capture_instructions.md                 – Photo capture protocol
+  metadata.csv                            – Dataset metadata template (updated)
+  apple/unripe/                           – Populated folder (contains dataset images)
+  apple/ripe/                             – Populated folder (contains dataset images)
+  apple/overripe/                         – Populated folder (contains dataset images)
+  banana/unripe/                          – Populated folder (contains dataset images)
+  banana/ripe/                            – Populated folder (contains dataset images)
+  banana/overripe/                        – Populated folder (contains dataset images)
+  pear/unripe/                            – Populated folder (contains dataset images)
+  pear/ripe/                              – Populated folder (contains dataset images)
+  pear/overripe/                          – Populated folder (contains dataset images)
 
 dataset_check.py                          – Dataset validation + visualization
 

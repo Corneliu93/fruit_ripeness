@@ -9,7 +9,7 @@ Validates the fruit ripeness dataset structure.
 
 Usage:
     python dataset_check.py
-    python dataset_check.py --data_dir ./dataset --min_images 15 --show_samples
+    python dataset_check.py --data_dir ./dataset --min_images 25 --show_samples
 """
 
 import os

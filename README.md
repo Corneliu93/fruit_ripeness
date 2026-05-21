@@ -62,7 +62,7 @@ pip install -r requirements.txt
 
 ## Dataset
 
-Target: **25 images per class** (minimum 15), 9 classes = 225 images total.
+Target: **50 images per class** (minimum 25), 9 classes = 450 images total.
 
 See `dataset/capture_instructions.md` for photo capture protocol.
 
@@ -121,7 +121,7 @@ All experiments use fixed seeds:
 
 If real images cannot be captured, the pipeline trains on:
 1. Synthetic augmented images (generated via `synthesize_augment.py`)
-2. Public subset (≤10% of a public fruit dataset)
+2. Public subset (≤10 images of a public fruit dataset)
 
 
 ---
@@ -131,7 +131,7 @@ If real images cannot be captured, the pipeline trains on:
 | Week | Milestone | Status |
 |------|-----------|--------|
 | 1 | Repo skeleton, structure | ✅ Done |
-| 2 | Dataset + data pipeline | ⏳ Pending |
+| 2 | Dataset + data pipeline | ✅ Done |
 | 3 | Baseline CNN trained | ⏳ Pending |
 | 4 | Baseline evaluation | ⏳ Pending |
 | 5 | MobileNetV2 Phase 1 | ⏳ Pending |
@@ -160,7 +160,6 @@ final report and slides
 
 ---
 
-## Authors
-
+## Author
 - Student: Corneliu Rosca
 - Project: Image-based fruit ripeness classification

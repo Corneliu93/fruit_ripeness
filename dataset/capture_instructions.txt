@@ -143,7 +143,7 @@ This will:
 1. Count images per class
 2. Check image dimensions
 3. Display 3 sample images per class
-4. Report any classes with fewer than 15 images
+4. Report any classes with fewer than 25 images
 
 ---
 
@@ -152,7 +152,7 @@ This will:
 Recommended capture schedule (≈2 hours total):
 - Session 1 (45 min): Apple (unripe → ripe → overripe)
 - Session 2 (45 min): Banana + Pear
-- Session 3 (30 min): Retakes for any class with <15 images
+- Session 3 (30 min): Retakes for any class with <25 images
 
 ---
 
