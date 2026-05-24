@@ -132,7 +132,7 @@ If real images cannot be captured, the pipeline trains on:
 |------|-----------|--------|
 | 1 | Repo skeleton, structure | ✅ Done |
 | 2 | Dataset + data pipeline | ✅ Done |
-| 3 | Baseline CNN trained | ⏳ Pending |
+| 3 | Baseline CNN trained | ✅ Done |
 | 4 | Baseline evaluation | ⏳ Pending |
 | 5 | MobileNetV2 Phase 1 | ⏳ Pending |
 | 6 | MobileNetV2 Fine-tuned | ⏳ Pending |
