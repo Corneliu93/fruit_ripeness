@@ -26,7 +26,7 @@ def rename_folder(folder: str, fruit: str, stage: str) -> int:
         print(f"  ℹ️  {fruit}/{stage}: no images")
         return 0
 
-    print(f"\n  📁 {fruit}/{stage}  ({len(files)} fișiere)")
+    print(f"\n  📁 {fruit}/{stage}  ({len(files)} files)")
 
     # Step 1: → temp
     temp_files = []

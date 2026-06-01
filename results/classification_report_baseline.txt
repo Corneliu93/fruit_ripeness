@@ -1,0 +1,18 @@
+BASELINE CNN - TEST SET CLASSIFICATION REPORT
+=======================================================
+
+                 precision    recall  f1-score   support
+
+   apple_unripe     0.3333    0.1250    0.1818         8
+     apple_ripe     0.1026    0.5000    0.1702         8
+ apple_overripe     0.0690    0.2500    0.1081         8
+  banana_unripe     0.0000    0.0000    0.0000         8
+    banana_ripe     0.0000    0.0000    0.0000         8
+banana_overripe     0.0000    0.0000    0.0000         8
+    pear_unripe     0.0000    0.0000    0.0000         8
+      pear_ripe     0.0000    0.0000    0.0000         8
+  pear_overripe     0.0000    0.0000    0.0000         8
+
+       accuracy                         0.0972        72
+      macro avg     0.0561    0.0972    0.0511        72
+   weighted avg     0.0561    0.0972    0.0511        72
