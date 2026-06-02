@@ -26,6 +26,15 @@ dataset/**/*.JPG
 # Keep folder structure
 !dataset/**/.gitkeep
 
+# Derived dataset splits (large files)
+dataset_splits/**/*.jpg
+dataset_splits/**/*.jpeg
+dataset_splits/**/*.png
+dataset_splits/**/*.JPG
+# Keep folder structure
+!dataset_splits/**/.gitkeep
+
+
 # Results (generated)
 results/*.png
 results/*.csv
