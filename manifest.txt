@@ -41,7 +41,7 @@ manifest.txt                              – This file
 PENDING (future weeks):
 -----------------------
 notebooks/01_data_preprocessing.ipynb		– Week 2 ✅ Done
-notebooks/02_train_baseline.ipynb		– Week 3 ✅ Done
+notebooks/02_train_baseline.ipynb			– Week 3 ✅ Done
 notebooks/03_evaluation_baseline.ipynb		– Week 4 ✅ Done
 notebooks/04_train_mobilenetv2_phase1.ipynb	– Week 5 ✅ Done
 notebooks/05_evaluation.ipynb			– Week 7
