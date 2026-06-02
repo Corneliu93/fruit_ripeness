@@ -1,7 +1,7 @@
 MANIFEST – Week 3
 =================
 Project: Image-based Fruit Ripeness Classification
-Week: 4 / 10
+Week: 5 / 10
 Date: 2026
 
 FILES DELIVERED:
@@ -40,18 +40,18 @@ manifest.txt                              – This file
 
 PENDING (future weeks):
 -----------------------
-notebooks/01_data_preprocessing.ipynb    – Week 2 ✅ Done
-notebooks/02_train_baseline.ipynb        – Week 3 ✅ Done
-notebooks/03_evaluation_baseline.ipynb   – Week 4 ✅ Done
-notebooks/04_train_mobilenet.ipynb       – Week 5-6
-notebooks/05_evaluation.ipynb            – Week 7
-saved_models/baseline_best.h5            – Week 3 ✅ Done
-saved_models/mobilenet_phase1.h5         – Week 5
-saved_models/mobilenet_finetuned.h5      – Week 6
-results/results.csv                      – Week 7
-report.pdf / report.md                   – Week 9
-slides.pdf                               – Week 9
-final_submission.zip                     – Week 10
+notebooks/01_data_preprocessing.ipynb    	– Week 2 ✅ Done
+notebooks/02_train_baseline.ipynb        	– Week 3 ✅ Done
+notebooks/03_evaluation_baseline.ipynb          – Week 4 ✅ Done
+notebooks/04_train_mobilenetv2_phase1.ipynb     – Week 5 ✅ Done
+notebooks/05_evaluation.ipynb            	– Week 7
+saved_models/baseline_best.h5            	– Week 3 ✅ Done
+saved_models/mobilenet_phase1.h5         	– Week 5 ✅ Done
+saved_models/mobilenet_finetuned.h5      	– Week 6
+results/results.csv                      	– Week 7
+report.pdf / report.md                   	– Week 9
+slides.pdf                               	– Week 9
+final_submission.zip                     	– Week 10
 
 REPRODUCE EVALUATION (after all training):
 ------------------------------------------

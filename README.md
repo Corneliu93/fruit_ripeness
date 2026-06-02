@@ -16,6 +16,10 @@ fruit_ripeness/
 │   ├── pear/         {unripe, ripe, overripe}
 │   ├── metadata.csv
 │   └── capture_instructions.md
+├── dataset_splits/
+│   ├── train/  → 9 clase, 315 imagini
+│   ├── val/    →  9 clase,  63 imagini
+│   └── test/   →  9 clase,  72 imagini
 ├── src/
 │   ├── data_pipeline.py
 │   ├── models.py
@@ -23,29 +27,44 @@ fruit_ripeness/
 │   ├── evaluate.py
 │   └── utils.py
 ├── notebooks/
+│   ├── results/data_split.csv
 │   ├── 01_data_preprocessing.ipynb
 │   ├── 02_train_baseline.ipynb
-│   ├── 03_train_mobilenet.ipynb
-│   └── 04_evaluation.ipynb
+│   ├── 03_evaluation_baseline.ipynb
+│   └── 04_train_mobilenetv2_phase1.ipynb
 ├── saved_models/
 │   ├── baseline_best.h5
-│   ├── mobilenet_phase1.h5
+│   ├── mobilenet_phase1_best.h5
 │   └── mobilenet_finetuned.h5
 ├── results/
 │   ├── results.csv
-│   ├── confusion_matrix_{model}.png
-│   ├── training_curves_{model}.png
+│   ├── data_split.csv
+│   ├── history_baseline.csv
+│   ├── augmentation_demo.png
+│   ├── class_names.json
+│   ├── classification_report_baseline.txt
+│   ├── confusion_matrix_baseline.png
+│   ├── mobilenet_phase1_history.json
+│   ├── mobilenet_phase1_training_curves.png
+│   ├── preprocessing_demo.png
+│   ├── raw_samples.png
+│   ├── roc_curves_baseline.png
+│   ├── training_batch_sample.png
+│   ├── training_curves_baseline.png
+│   ├── 
 │   └── gradcam_{example}.png
 ├── web_app/
 │   ├── app.py
 │   ├── templates/index.html
 │   ├── static/uploads/
 │   └── model/mobilenet_finetuned.h5
-├── requirements.txt
 ├── .gitignore
-├── README.md
+├── check_split.py
+├── dataset_check.py
 ├── manifest.txt
-└── dataset_check.py
+├── README.md
+├── rename_images.py
+└── requirements.txt
 ```
 
 ---
@@ -134,7 +153,7 @@ If real images cannot be captured, the pipeline trains on:
 | 2 | Dataset + data pipeline | ✅ Done |
 | 3 | Baseline CNN trained | ✅ Done |
 | 4 | Baseline evaluation | ✅ Done |
-| 5 | MobileNetV2 Phase 1 | ⏳ Pending |
+| 5 | MobileNetV2 Phase 1 | ✅ Done |
 | 6 | MobileNetV2 Fine-tuned | ⏳ Pending |
 | 7 | Full evaluation + Grad-CAM | ⏳ Pending |
 | 8 | Flask demo | ⏳ Pending |
