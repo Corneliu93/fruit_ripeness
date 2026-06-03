@@ -25,8 +25,8 @@ dataset/
 
 dataset_splits/
   train/  → 9 clase, 315 imagini          – Populated folder (contains dataset images)
-  val/    →  9 clase,  63 imagini	  – Populated folder (contains dataset images)
-  test/   →  9 clase,  72 imagini	  – Populated folder (contains dataset images)
+  val/    →  9 clase,  63 imagini         – Populated folder (contains dataset images)
+  test/   →  9 clase,  72 imagini         – Populated folder (contains dataset images)
 
 
 dataset_check.py                          – Dataset validation + visualization
@@ -46,19 +46,19 @@ manifest.txt                              – This file
 
 PENDING (future weeks):
 -----------------------
-notebooks/01_data_preprocessing.ipynb		– Week 2 ✅ Done
-notebooks/02_train_baseline.ipynb		– Week 3 ✅ Done
-notebooks/03_evaluation_baseline.ipynb		– Week 4 ✅ Done
-notebooks/04_train_mobilenetv2_phase1.ipynb	– Week 5 ✅ Done
-notebooks/05_train_mobilenetv2_phase2.ipynb	– Week 6 ✅ Done
-notebooks/06_evaluation.ipynb			– Week 7
-saved_models/baseline_best.h5			– Week 3 ✅ Done
-saved_models/mobilenet_phase1_best.h5		– Week 5 ✅ Done
-saved_models/mobilenet_phase1_best.h5		– Week 6
-results/results.csv				– Week 7
-report.pdf / report.md				– Week 9
-slides.pdf					– Week 9
-final_submission.zip				– Week 10
+notebooks/01_data_preprocessing.ipynb           – Week 2 ✅ Done
+notebooks/02_train_baseline.ipynb               – Week 3 ✅ Done
+notebooks/03_evaluation_baseline.ipynb          – Week 4 ✅ Done
+notebooks/04_train_mobilenetv2_phase1.ipynb     – Week 5 ✅ Done
+notebooks/05_train_mobilenetv2_phase2.ipynb     – Week 6 ✅ Done
+notebooks/06_evaluation.ipynb                   – Week 7
+saved_models/baseline_best.h5                   – Week 3 ✅ Done
+saved_models/mobilenet_phase1_best.h5           – Week 5 ✅ Done
+saved_models/mobilenet_phase2_best.h5           – Week 6 ✅ Done
+results/results.csv                             – Week 7
+report.pdf / report.md                          – Week 9
+slides.pdf                                      – Week 9
+final_submission.zip                            – Week 10
 
 REPRODUCE EVALUATION (after all training):
 ------------------------------------------
