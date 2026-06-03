@@ -31,11 +31,12 @@ fruit_ripeness/
 │   ├── 01_data_preprocessing.ipynb
 │   ├── 02_train_baseline.ipynb
 │   ├── 03_evaluation_baseline.ipynb
-│   └── 04_train_mobilenetv2_phase1.ipynb
+│   ├── 04_train_mobilenetv2_phase1.ipynb
+│   └── 05_train_mobilenetv2_phase2.ipynb
 ├── saved_models/
 │   ├── baseline_best.h5
 │   ├── mobilenet_phase1_best.h5
-│   └── mobilenet_finetuned.h5
+│   └── mobilenet_phase2_best.h5
 ├── results/
 │   ├── results.csv
 │   ├── data_split.csv
@@ -46,6 +47,8 @@ fruit_ripeness/
 │   ├── confusion_matrix_baseline.png
 │   ├── mobilenet_phase1_history.json
 │   ├── mobilenet_phase1_training_curves.png
+│   ├── mobilenet_phase2_history.json
+│   ├── mobilenet_phase2_training_curves.png
 │   ├── preprocessing_demo.png
 │   ├── raw_samples.png
 │   ├── roc_curves_baseline.png
@@ -154,7 +157,7 @@ If real images cannot be captured, the pipeline trains on:
 | 3 | Baseline CNN trained | ✅ Done |
 | 4 | Baseline evaluation | ✅ Done |
 | 5 | MobileNetV2 Phase 1 | ✅ Done |
-| 6 | MobileNetV2 Fine-tuned | ⏳ Pending |
+| 6 | MobileNetV2 Fine-tuned | ✅ Done |
 | 7 | Full evaluation + Grad-CAM | ⏳ Pending |
 | 8 | Flask demo | ⏳ Pending |
 | 9 | Report + slides | ⏳ Pending |
