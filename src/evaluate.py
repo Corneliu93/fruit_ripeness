@@ -1,16 +1,31 @@
 """
 src/evaluate.py
 ===============
-Full evaluation pipeline:
-- Accuracy, Precision, Recall, F1 (per class + macro)
-- Confusion matrix (saved as PNG)
-- ROC curves (one-vs-rest)
-- Grad-CAM visualizations (3 examples per class)
-- Updates results/results.csv
+Full evaluation pipeline for the fruit ripeness models.
+
+Produces:
+    - Accuracy, Precision, Recall, F1 (per class + macro)
+    - Confusion matrix (count + normalised)
+    - One-vs-rest ROC curves with AUC
+    - Grad-CAM overlays (transfer-learning model)
+    - Updates results/results.csv
+
+Two model families are supported via --model_kind:
+    baseline   : custom CNN. Trained in canonical CLASS_NAMES order on [0, 1]
+                 inputs through src.data_pipeline.build_tf_dataset.
+    mobilenet  : transfer-learning model. Trained via image_dataset_from_directory
+                 (alphabetical class order) on [-1, 1] inputs. Its predictions and
+                 labels are permuted back to the canonical CLASS_NAMES order, so all
+                 reported figures share one class ordering. No retraining occurs.
 
 Usage:
-    python src/evaluate.py --model_path saved_models/mobilenet_finetuned.h5 \
-                            --data_dir ./dataset/test --output results/
+    python src/evaluate.py --model_kind mobilenet \
+        --model_path saved_models/mobilenet_phase2_best.h5 \
+        --splits_dir dataset_splits --output results/
+
+    python src/evaluate.py --model_kind baseline \
+        --model_path saved_models/baseline_best.h5 \
+        --data_dir ./dataset --output results/
 """
 
 import os
@@ -25,78 +40,69 @@ import seaborn as sns
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.utils import CLASS_NAMES, NUM_CLASSES, ensure_dirs, get_logger
+from src.utils import (
+    CLASS_NAMES, ALPHABETICAL_CLASS_NAMES, NUM_CLASSES, IMAGE_SIZE,
+    ensure_dirs, get_logger,
+    alpha_probs_to_canonical, alpha_labels_to_canonical,
+)
 
 logger = get_logger("evaluate")
 
 
 # ──────────────────────────────────────────────
-# Prediction helpers
+# Prediction
 # ──────────────────────────────────────────────
 def get_predictions(model, dataset):
     """
     Run inference on a tf.data dataset.
-    Returns: y_true (int), y_pred (int), y_scores (float[N, C])
+    Returns y_true (int labels in the dataset's own order) and y_scores (float[N, C]).
     """
-    y_true   = []
-    y_scores = []
-
+    y_true, y_scores = [], []
     for images, labels in dataset:
-        preds = model.predict(images, verbose=0)
-        y_scores.append(preds)
+        y_scores.append(model.predict(images, verbose=0))
         y_true.extend(np.argmax(labels.numpy(), axis=1))
-
     y_scores = np.vstack(y_scores)
-    y_pred   = np.argmax(y_scores, axis=1)
-    return np.array(y_true), np.array(y_pred), y_scores
+    return np.array(y_true), y_scores
 
 
 # ──────────────────────────────────────────────
 # Metrics
 # ──────────────────────────────────────────────
-def compute_metrics(y_true, y_pred, y_scores):
-    """
-    Compute classification metrics.
-    Returns dict with per-class and macro metrics.
-    """
+def compute_metrics(y_true, y_pred):
+    """Compute classification metrics in canonical CLASS_NAMES order."""
     from sklearn.metrics import (
-        accuracy_score, precision_score, recall_score,
-        f1_score, classification_report
+        accuracy_score, precision_score, recall_score, f1_score, classification_report
     )
-
     metrics = {
-        "accuracy":         accuracy_score(y_true, y_pred),
-        "precision_macro":  precision_score(y_true, y_pred, average="macro", zero_division=0),
-        "recall_macro":     recall_score(y_true, y_pred, average="macro", zero_division=0),
-        "f1_macro":         f1_score(y_true, y_pred, average="macro", zero_division=0),
+        "accuracy":        float(accuracy_score(y_true, y_pred)),
+        "precision_macro": float(precision_score(y_true, y_pred, average="macro", zero_division=0)),
+        "recall_macro":    float(recall_score(y_true, y_pred, average="macro", zero_division=0)),
+        "f1_macro":        float(f1_score(y_true, y_pred, average="macro", zero_division=0)),
     }
-
-    # Per-class metrics
-    prec_per_class = precision_score(y_true, y_pred, average=None, zero_division=0)
-    rec_per_class  = recall_score(y_true, y_pred, average=None, zero_division=0)
-    f1_per_class   = f1_score(y_true, y_pred, average=None, zero_division=0)
-
+    prec = precision_score(y_true, y_pred, average=None, labels=list(range(NUM_CLASSES)), zero_division=0)
+    rec  = recall_score(y_true, y_pred, average=None, labels=list(range(NUM_CLASSES)), zero_division=0)
+    f1   = f1_score(y_true, y_pred, average=None, labels=list(range(NUM_CLASSES)), zero_division=0)
     for i, cls in enumerate(CLASS_NAMES):
-        if i < len(prec_per_class):
-            metrics[f"precision_{cls}"] = prec_per_class[i]
-            metrics[f"recall_{cls}"]    = rec_per_class[i]
-            metrics[f"f1_{cls}"]        = f1_per_class[i]
+        metrics[f"precision_{cls}"] = float(prec[i])
+        metrics[f"recall_{cls}"]    = float(rec[i])
+        metrics[f"f1_{cls}"]        = float(f1[i])
 
     report = classification_report(
-        y_true, y_pred,
-        target_names=CLASS_NAMES,
-        zero_division=0
+        y_true, y_pred, labels=list(range(NUM_CLASSES)),
+        target_names=CLASS_NAMES, digits=4, zero_division=0
     )
     logger.info(f"\nClassification Report:\n{report}")
-
     return metrics, report
 
 
 def update_results_csv(metrics: dict, model_name: str, output_dir: str = "results"):
-    """Update results.csv with evaluation metrics."""
+    """
+    Update results/results.csv eval row for this model. The eval row stores the
+    test accuracy (in the val_acc column, matching the train.py schema) plus the
+    macro precision/recall/F1.
+    """
     ensure_dirs(output_dir)
     csv_path = f"{output_dir}/results.csv"
-
     new_row = {
         "model":           model_name,
         "epoch":           "eval",
@@ -106,17 +112,13 @@ def update_results_csv(metrics: dict, model_name: str, output_dir: str = "result
         "recall_macro":    round(metrics["recall_macro"], 4),
         "f1_macro":        round(metrics["f1_macro"], 4),
     }
-
     df_new = pd.DataFrame([new_row])
-
     if Path(csv_path).exists():
         df = pd.read_csv(csv_path)
-        # Update the row for this model (eval row)
-        df = df[~((df["model"] == model_name) & (df["epoch"] == "eval"))]
+        df = df[~((df["model"] == model_name) & (df["epoch"].astype(str) == "eval"))]
         df = pd.concat([df, df_new], ignore_index=True)
     else:
         df = df_new
-
     df.to_csv(csv_path, index=False)
     logger.info(f"Results CSV updated at {csv_path}")
 
@@ -124,231 +126,172 @@ def update_results_csv(metrics: dict, model_name: str, output_dir: str = "result
 # ──────────────────────────────────────────────
 # Confusion matrix
 # ──────────────────────────────────────────────
-def plot_confusion_matrix(y_true, y_pred, model_name: str, output_dir: str):
-    """Plot and save normalized confusion matrix."""
+def plot_confusion_matrix(y_true, y_pred, model_name: str, output_dir: str, show: bool = False):
+    """Plot and save count + normalised confusion matrices (canonical order)."""
     from sklearn.metrics import confusion_matrix
-
     ensure_dirs(output_dir)
-    cm = confusion_matrix(y_true, y_pred)
+    cm = confusion_matrix(y_true, y_pred, labels=list(range(NUM_CLASSES)))
     cm_norm = cm.astype(float) / (cm.sum(axis=1, keepdims=True) + 1e-8)
 
+    short = [c.replace("_", "\n") for c in CLASS_NAMES]
     fig, axes = plt.subplots(1, 2, figsize=(18, 7))
-
-    short_names = [c.replace("_", "\n") for c in CLASS_NAMES]
-
     for ax, data, title, fmt in [
         (axes[0], cm,      "Count",      "d"),
         (axes[1], cm_norm, "Normalized", ".2f"),
     ]:
-        sns.heatmap(
-            data,
-            annot=True, fmt=fmt,
-            xticklabels=short_names,
-            yticklabels=short_names,
-            cmap="Blues", ax=ax,
-            linewidths=0.5,
-        )
-        ax.set_title(f"Confusion Matrix ({title})\n{model_name}", fontsize=11)
+        sns.heatmap(data, annot=True, fmt=fmt, xticklabels=short, yticklabels=short,
+                    cmap="Blues", ax=ax, linewidths=0.5)
+        ax.set_title(f"Confusion Matrix ({title}) - {model_name}", fontsize=11)
         ax.set_xlabel("Predicted", fontsize=10)
         ax.set_ylabel("True", fontsize=10)
         ax.tick_params(axis="x", rotation=45, labelsize=7)
         ax.tick_params(axis="y", rotation=0, labelsize=7)
-
     plt.tight_layout()
-    out_path = f"{output_dir}/confusion_matrix_{model_name}.png"
-    plt.savefig(out_path, dpi=120, bbox_inches="tight")
-    plt.close()
-    logger.info(f"Confusion matrix saved to {out_path}")
+    out = f"{output_dir}/confusion_matrix_{model_name}.png"
+    plt.savefig(out, dpi=120, bbox_inches="tight")
+    logger.info(f"Confusion matrix saved to {out}")
+    if show:
+        plt.show()
+    else:
+        plt.close()
 
 
 # ──────────────────────────────────────────────
 # ROC curves
 # ──────────────────────────────────────────────
-def plot_roc_curves(y_true, y_scores, model_name: str, output_dir: str):
-    """Plot one-vs-rest ROC curves for all classes."""
+def plot_roc_curves(y_true, y_scores, model_name: str, output_dir: str, show: bool = False):
+    """Plot one-vs-rest ROC curves (canonical order). Returns macro AUC."""
     from sklearn.metrics import roc_curve, auc
     from sklearn.preprocessing import label_binarize
-
     ensure_dirs(output_dir)
     y_bin = label_binarize(y_true, classes=list(range(NUM_CLASSES)))
 
     fig, ax = plt.subplots(figsize=(10, 8))
-    colors  = plt.cm.tab10(np.linspace(0, 1, NUM_CLASSES))
-
+    colors = plt.cm.tab10(np.linspace(0, 1, NUM_CLASSES))
+    aucs = []
     for i, (cls, color) in enumerate(zip(CLASS_NAMES, colors)):
-        if i < y_scores.shape[1]:
-            fpr, tpr, _ = roc_curve(y_bin[:, i], y_scores[:, i])
-            roc_auc     = auc(fpr, tpr)
-            ax.plot(fpr, tpr, color=color, lw=1.5,
-                    label=f"{cls} (AUC={roc_auc:.2f})")
-
+        if y_bin[:, i].sum() == 0:
+            continue
+        fpr, tpr, _ = roc_curve(y_bin[:, i], y_scores[:, i])
+        a = auc(fpr, tpr)
+        aucs.append(a)
+        ax.plot(fpr, tpr, color=color, lw=1.5, label=f"{cls} (AUC={a:.2f})")
     ax.plot([0, 1], [0, 1], "k--", lw=1)
-    ax.set_xlim([0.0, 1.0])
-    ax.set_ylim([0.0, 1.05])
-    ax.set_xlabel("False Positive Rate")
-    ax.set_ylabel("True Positive Rate")
-    ax.set_title(f"ROC Curves (One-vs-Rest) – {model_name}")
+    macro_auc = float(np.mean(aucs)) if aucs else float("nan")
+    ax.set_xlim([0.0, 1.0]); ax.set_ylim([0.0, 1.05])
+    ax.set_xlabel("False Positive Rate"); ax.set_ylabel("True Positive Rate")
+    ax.set_title(f"ROC Curves (One-vs-Rest) - {model_name} (macro AUC={macro_auc:.4f})")
     ax.legend(loc="lower right", fontsize=8)
     ax.grid(True, alpha=0.3)
-
     plt.tight_layout()
-    out_path = f"{output_dir}/roc_curves_{model_name}.png"
-    plt.savefig(out_path, dpi=100, bbox_inches="tight")
-    plt.close()
-    logger.info(f"ROC curves saved to {out_path}")
+    out = f"{output_dir}/roc_curves_{model_name}.png"
+    plt.savefig(out, dpi=100, bbox_inches="tight")
+    logger.info(f"ROC curves saved to {out} (macro AUC={macro_auc:.4f})")
+    if show:
+        plt.show()
+    else:
+        plt.close()
+    return macro_auc
 
 
 # ──────────────────────────────────────────────
 # Grad-CAM
 # ──────────────────────────────────────────────
-def compute_gradcam(model, image_array, class_idx, last_conv_layer_name=None):
+def build_gradcam_model(model):
     """
-    Compute Grad-CAM heatmap for a single image.
+    Build a Grad-CAM model for a Sequential([MobileNetV2_base, GAP, Dropout, Dense]).
 
-    Args:
-        model:                Keras model
-        image_array:          numpy array, shape (H, W, C), values in [0, 1]
-        class_idx:            target class index
-        last_conv_layer_name: name of last conv layer (auto-detected if None)
-
-    Returns:
-        heatmap: numpy array (H, W), values in [0, 1]
+    With include_top=False and no pooling, the base output IS the final
+    convolutional feature map (out_relu, 7x7x1280). We expose it and re-apply the
+    head so the single functional graph connects input -> (feature_map, predictions).
+    This avoids the 'graph disconnected' error that arises from calling
+    model.get_layer() on a layer nested inside the base sub-model.
     """
     import tensorflow as tf
+    base = model.layers[0]
+    if not isinstance(base, tf.keras.Model):
+        raise ValueError("Expected the MobileNetV2 base as the first layer of the model.")
+    feature_map = base.output
+    x = feature_map
+    for layer in model.layers[1:]:
+        x = layer(x)
+    return tf.keras.Model(base.input, [feature_map, x])
 
-    # Auto-detect last conv layer
-    if last_conv_layer_name is None:
-        for layer in reversed(model.layers):
-            if hasattr(layer, "filters") or "conv" in layer.name.lower():
-                last_conv_layer_name = layer.name
-                break
-        if last_conv_layer_name is None:
-            # For MobileNetV2, use the last conv inside the base
-            for layer in reversed(model.layers):
-                if isinstance(layer, tf.keras.Model):
-                    for inner in reversed(layer.layers):
-                        if "conv" in inner.name.lower():
-                            last_conv_layer_name = inner.name
-                            break
-                if last_conv_layer_name:
-                    break
 
-    if last_conv_layer_name is None:
-        raise ValueError("Could not find last conv layer automatically.")
-
-    # Build grad model
-    grad_model = tf.keras.models.Model(
-        inputs=model.inputs,
-        outputs=[
-            model.get_layer(last_conv_layer_name).output,
-            model.output,
-        ]
-    )
-
+def compute_gradcam(grad_model, img_batch, pred_index=None):
+    """Compute a Grad-CAM heatmap for one preprocessed image batch (shape (1,H,W,3))."""
+    import tensorflow as tf
     with tf.GradientTape() as tape:
-        img_tensor = tf.cast(
-            np.expand_dims(image_array, 0), tf.float32
-        )
-        conv_outputs, predictions = grad_model(img_tensor)
-        loss = predictions[:, class_idx]
-
-    grads = tape.gradient(loss, conv_outputs)
-    pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
-
-    conv_outputs = conv_outputs[0]
-    heatmap = conv_outputs @ pooled_grads[..., tf.newaxis]
-    heatmap = tf.squeeze(heatmap)
-    heatmap = tf.maximum(heatmap, 0) / (tf.math.reduce_max(heatmap) + 1e-8)
-    return heatmap.numpy()
+        feature_map, preds = grad_model(img_batch, training=False)
+        if pred_index is None:
+            pred_index = int(tf.argmax(preds[0]))
+        class_channel = preds[:, pred_index]
+    grads = tape.gradient(class_channel, feature_map)
+    pooled = tf.reduce_mean(grads, axis=(0, 1, 2))
+    fmap = feature_map[0]
+    heatmap = tf.squeeze(fmap @ pooled[..., tf.newaxis])
+    heatmap = tf.maximum(heatmap, 0) / (tf.reduce_max(heatmap) + 1e-8)
+    return heatmap.numpy(), pred_index, float(preds[0][pred_index])
 
 
-def save_gradcam_overlay(
-    image_array, heatmap,
-    true_label, pred_label,
-    example_id: str,
-    output_dir: str,
-):
-    """Save Grad-CAM heatmap overlaid on original image."""
-    import cv2
+def overlay_heatmap(raw01, heatmap, alpha: float = 0.4):
+    """Overlay a heatmap on a [0,1] RGB image using a matplotlib colormap (no cv2)."""
+    import tensorflow as tf
+    jet = plt.get_cmap("jet")
+    hm = tf.image.resize(heatmap[..., np.newaxis], raw01.shape[:2]).numpy().squeeze()
+    colored = jet(hm)[..., :3]
+    return np.clip((1.0 - alpha) * raw01 + alpha * colored, 0, 1)
 
+
+def generate_gradcam_grid(model, splits_dir, output_dir, model_name,
+                          n_per_class: int = 1, show: bool = False):
+    """
+    Generate a Grad-CAM grid for the transfer-learning model: one row per class
+    (canonical order), n_per_class example(s) each, shown as original | overlay.
+    Predicted-class names use the model's alphabetical index space.
+    """
+    from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
+    from tensorflow.keras.utils import load_img, img_to_array
     ensure_dirs(output_dir)
 
-    # Resize heatmap to image size
-    h, w = image_array.shape[:2]
-    heatmap_resized = cv2.resize(heatmap, (w, h))
-    heatmap_uint8   = np.uint8(255 * heatmap_resized)
-    heatmap_colored = cv2.applyColorMap(heatmap_uint8, cv2.COLORMAP_JET)
-    heatmap_rgb     = cv2.cvtColor(heatmap_colored, cv2.COLOR_BGR2RGB)
+    grad_model = build_gradcam_model(model)
+    test_dir = Path(splits_dir) / "test"
 
-    img_uint8 = np.uint8(255 * image_array)
-    overlay   = np.uint8(0.6 * img_uint8 + 0.4 * heatmap_rgb)
+    rows = []
+    for cls in CLASS_NAMES:  # canonical order
+        cdir = test_dir / cls
+        imgs = sorted([p for p in cdir.iterdir()
+                       if p.suffix.lower() in (".jpg", ".jpeg", ".png")]) if cdir.exists() else []
+        rows.append((cls, imgs[:n_per_class]))
 
-    fig, axes = plt.subplots(1, 3, figsize=(12, 4))
-    axes[0].imshow(img_uint8);      axes[0].set_title("Original"); axes[0].axis("off")
-    axes[1].imshow(heatmap_rgb);    axes[1].set_title("Grad-CAM"); axes[1].axis("off")
-    axes[2].imshow(overlay);        axes[2].set_title("Overlay");  axes[2].axis("off")
+    ncols = max(1, n_per_class) * 2  # (original + overlay) per example
+    fig, axes = plt.subplots(NUM_CLASSES, ncols, figsize=(ncols * 2.0, NUM_CLASSES * 2.2))
+    axes = np.atleast_2d(axes)
 
-    fig.suptitle(
-        f"True: {true_label} | Pred: {pred_label}",
-        fontsize=11, fontweight="bold"
-    )
+    for r, (cls, imgs) in enumerate(rows):
+        for k in range(max(1, n_per_class)):
+            ax_o = axes[r, k * 2]
+            ax_h = axes[r, k * 2 + 1]
+            if k < len(imgs):
+                raw = img_to_array(load_img(imgs[k], target_size=IMAGE_SIZE))
+                inp = preprocess_input(np.expand_dims(raw.copy(), 0).astype("float32"))
+                heatmap, pred_idx, conf = compute_gradcam(grad_model, inp)
+                pred_name = ALPHABETICAL_CLASS_NAMES[pred_idx]
+                overlay = overlay_heatmap(raw / 255.0, heatmap)
+                mark = "OK" if pred_name == cls else "X"
+                ax_o.imshow(raw.astype("uint8")); ax_o.set_title(cls, fontsize=7)
+                ax_h.imshow(overlay); ax_h.set_title(f"[{mark}] {pred_name} ({conf:.2f})", fontsize=7)
+            ax_o.axis("off"); ax_h.axis("off")
+
+    fig.suptitle(f"Grad-CAM - {model_name}", fontsize=12, fontweight="bold")
     plt.tight_layout()
-
-    out_path = f"{output_dir}/gradcam_{example_id}.png"
-    plt.savefig(out_path, dpi=100, bbox_inches="tight")
-    plt.close()
-    return out_path
-
-
-def generate_gradcam_examples(
-    model,
-    dataset,
-    y_true,
-    y_pred,
-    output_dir: str,
-    n_per_class: int = 3,
-):
-    """Generate Grad-CAM for n_per_class examples per class."""
-    # Collect all images and labels
-    all_images = []
-    for images, _ in dataset:
-        all_images.extend(images.numpy())
-
-    all_images = np.array(all_images[:len(y_true)])
-
-    logger.info("Generating Grad-CAM visualizations...")
-    saved = []
-    class_counts = {i: 0 for i in range(NUM_CLASSES)}
-
-    for idx in range(len(y_true)):
-        cls = int(y_true[idx])
-        if class_counts[cls] >= n_per_class:
-            continue
-
-        image   = all_images[idx]
-        true_cls = CLASS_NAMES[cls]
-        pred_cls = CLASS_NAMES[int(y_pred[idx])]
-
-        try:
-            heatmap = compute_gradcam(model, image, cls)
-            example_id = f"{true_cls}_{class_counts[cls]+1:02d}"
-            path = save_gradcam_overlay(
-                image, heatmap,
-                true_label=true_cls,
-                pred_label=pred_cls,
-                example_id=example_id,
-                output_dir=output_dir,
-            )
-            saved.append(path)
-            class_counts[cls] += 1
-            logger.info(f"  Grad-CAM saved: {path}")
-        except Exception as e:
-            logger.warning(f"  Grad-CAM failed for index {idx}: {e}")
-
-        if all(v >= n_per_class for v in class_counts.values()):
-            break
-
-    logger.info(f"Grad-CAM complete: {len(saved)} visualizations saved")
+    out = f"{output_dir}/gradcam_{model_name}.png"
+    plt.savefig(out, dpi=120, bbox_inches="tight")
+    logger.info(f"Grad-CAM grid saved to {out}")
+    if show:
+        plt.show()
+    else:
+        plt.close()
 
 
 # ──────────────────────────────────────────────
@@ -356,70 +299,59 @@ def generate_gradcam_examples(
 # ──────────────────────────────────────────────
 def evaluate(args):
     import tensorflow as tf
-    from src.data_pipeline import build_datasets, build_tf_dataset, stratified_split
 
     ensure_dirs(args.output)
-
-    # ── Load model ────────────────────────────
     logger.info(f"Loading model from {args.model_path}")
-    model = tf.keras.models.load_model(args.model_path)
-    model_name = Path(args.model_path).stem
+    model = tf.keras.models.load_model(args.model_path, compile=False)
+    model_name = args.model_name or Path(args.model_path).stem.replace("_best", "")
 
-    # ── Load test data ────────────────────────
-    logger.info(f"Loading test data from {args.data_dir}")
-    # If data_dir ends with /test, load directly; else use split
-    data_path = Path(args.data_dir)
+    if args.model_kind == "mobilenet":
+        from src.data_pipeline import build_mobilenet_test_dataset
+        test_ds, class_names_alpha = build_mobilenet_test_dataset(
+            args.splits_dir, batch_size=args.batch_size
+        )
+        if class_names_alpha != ALPHABETICAL_CLASS_NAMES:
+            logger.warning(
+                f"Loaded class order {class_names_alpha} differs from expected alphabetical order."
+            )
+        y_true_alpha, y_scores_alpha = get_predictions(model, test_ds)
+        # Permute alphabetical -> canonical so all reporting shares one order
+        y_scores = alpha_probs_to_canonical(y_scores_alpha)
+        y_true = alpha_labels_to_canonical(y_true_alpha)
+    else:  # baseline
+        from src.data_pipeline import stratified_split, build_tf_dataset
+        _, _, test_samples = stratified_split(args.data_dir, seed=args.seed)
+        if not test_samples:
+            logger.error("No test samples found. Check --data_dir.")
+            return
+        test_ds = build_tf_dataset(test_samples, batch_size=args.batch_size,
+                                   augment=False, shuffle=False)
+        y_true, y_scores = get_predictions(model, test_ds)
 
-    # Build full dataset splits and use test split
-    parent_dir = str(data_path.parent) if data_path.name == "test" else str(data_path)
-    _, _, test_samples = stratified_split(parent_dir, seed=args.seed)
+    y_pred = np.argmax(y_scores, axis=1)
+    metrics, report = compute_metrics(y_true, y_pred)
+    macro_auc = plot_roc_curves(y_true, y_scores, model_name, args.output, show=False)
+    metrics["macro_auc"] = macro_auc
 
-    if not test_samples:
-        logger.error("No test samples found. Check data_dir.")
-        return
-
-    test_ds = build_tf_dataset(
-        test_samples, batch_size=args.batch_size,
-        augment=False, shuffle=False
-    )
-
-    # ── Get predictions ───────────────────────
-    logger.info("Running inference...")
-    y_true, y_pred, y_scores = get_predictions(model, test_ds)
-
-    # ── Compute metrics ───────────────────────
-    metrics, report = compute_metrics(y_true, y_pred, y_scores)
-
-    # Print summary
-    print("\n" + "=" * 50)
+    print("\n" + "=" * 52)
     print(f"  Evaluation Results: {model_name}")
-    print("=" * 50)
-    print(f"  Accuracy:           {metrics['accuracy']:.4f}")
+    print("=" * 52)
+    print(f"  Test accuracy:      {metrics['accuracy']:.4f}")
     print(f"  Precision (macro):  {metrics['precision_macro']:.4f}")
     print(f"  Recall (macro):     {metrics['recall_macro']:.4f}")
     print(f"  F1 (macro):         {metrics['f1_macro']:.4f}")
-    print("=" * 50)
+    print(f"  Macro AUC:          {macro_auc:.4f}")
+    print("=" * 52)
 
-    # Save classification report
     with open(f"{args.output}/classification_report_{model_name}.txt", "w") as f:
         f.write(report)
 
-    # ── Update results.csv ────────────────────
     update_results_csv(metrics, model_name, args.output)
+    plot_confusion_matrix(y_true, y_pred, model_name, args.output, show=False)
 
-    # ── Confusion matrix ──────────────────────
-    plot_confusion_matrix(y_true, y_pred, model_name, args.output)
-
-    # ── ROC curves ────────────────────────────
-    plot_roc_curves(y_true, y_scores, model_name, args.output)
-
-    # ── Grad-CAM ──────────────────────────────
-    if not args.skip_gradcam:
-        generate_gradcam_examples(
-            model, test_ds, y_true, y_pred,
-            output_dir=args.output,
-            n_per_class=3,
-        )
+    if args.model_kind == "mobilenet" and not args.skip_gradcam:
+        generate_gradcam_grid(model, args.splits_dir, args.output, model_name,
+                              n_per_class=args.gradcam_per_class, show=False)
 
     logger.info(f"Evaluation complete. Results in {args.output}/")
 
@@ -428,35 +360,25 @@ def evaluate(args):
 # CLI
 # ──────────────────────────────────────────────
 def parse_args():
-    parser = argparse.ArgumentParser(
-        description="Evaluate a trained fruit ripeness model"
-    )
-    parser.add_argument(
-        "--model_path", type=str,
-        default="saved_models/mobilenet_finetuned.h5",
-        help="Path to saved Keras model (.h5)"
-    )
-    parser.add_argument(
-        "--data_dir", type=str, default="./dataset",
-        help="Root dataset directory"
-    )
-    parser.add_argument(
-        "--output", type=str, default="results/",
-        help="Output directory for evaluation artifacts"
-    )
-    parser.add_argument(
-        "--batch_size", type=int, default=16
-    )
-    parser.add_argument(
-        "--seed", type=int, default=42
-    )
-    parser.add_argument(
-        "--skip_gradcam", action="store_true",
-        help="Skip Grad-CAM generation (faster)"
-    )
-    return parser.parse_args()
+    p = argparse.ArgumentParser(description="Evaluate a trained fruit ripeness model")
+    p.add_argument("--model_kind", choices=["baseline", "mobilenet"], default="mobilenet",
+                   help="Which model family is being evaluated")
+    p.add_argument("--model_path", type=str, default="saved_models/mobilenet_phase2_best.h5",
+                   help="Path to saved Keras model (.h5)")
+    p.add_argument("--model_name", type=str, default=None,
+                   help="Override the model name used in output filenames")
+    p.add_argument("--splits_dir", type=str, default="dataset_splits",
+                   help="dataset_splits root (used by --model_kind mobilenet)")
+    p.add_argument("--data_dir", type=str, default="./dataset",
+                   help="Original dataset root (used by --model_kind baseline)")
+    p.add_argument("--output", type=str, default="results/", help="Output directory")
+    p.add_argument("--batch_size", type=int, default=32)
+    p.add_argument("--seed", type=int, default=42)
+    p.add_argument("--gradcam_per_class", type=int, default=1,
+                   help="Grad-CAM examples per class in the grid (mobilenet)")
+    p.add_argument("--skip_gradcam", action="store_true", help="Skip Grad-CAM generation")
+    return p.parse_args()
 
 
 if __name__ == "__main__":
-    args = parse_args()
-    evaluate(args)
+    evaluate(parse_args())

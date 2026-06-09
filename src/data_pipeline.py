@@ -461,6 +461,145 @@ def visualize_batch(
         logger.info(f"Batch visualization saved to {save_path}")
     plt.show()
 
+# ──────────────────────────────────────────────
+# MobileNetV2 / transfer-learning pipeline
+# ──────────────────────────────────────────────
+# The MobileNetV2 models were trained with tf.keras.utils.image_dataset_from_directory
+# on a derived dataset_splits/ directory. That loader orders classes ALPHABETICALLY
+# by folder name and yields pixels in [0, 255]; the functions below preprocess to
+# [-1, 1] via mobilenet_v2.preprocess_input. The baseline pipeline above
+# (build_datasets / build_tf_dataset, CLASS_NAMES order, [0, 1]) is unaffected.
+
+def build_dataset_splits_from_csv(
+    csv_path: str = "results/data_split.csv",
+    splits_dir: str = "dataset_splits",
+    project_root: str = ".",
+    force: bool = False,
+) -> str:
+    """
+    Materialise dataset_splits/<split>/<class_name>/ from results/data_split.csv.
+
+    Idempotent: if splits_dir already holds the 9-classes x 3-splits structure it
+    is left as-is unless force=True. Images are COPIED (never moved), so the
+    original dataset/ tree on which the Baseline CNN depends is untouched.
+
+    Returns the splits_dir path.
+    """
+    splits_path = Path(splits_dir)
+    expected_splits = ("train", "val", "test")
+
+    # Idempotency check
+    if splits_path.exists() and not force:
+        complete = all(
+            (splits_path / s).is_dir()
+            and len([d for d in (splits_path / s).iterdir() if d.is_dir()]) == NUM_CLASSES
+            for s in expected_splits
+        )
+        if complete:
+            logger.info(f"dataset_splits already present at {splits_dir} - skipping build.")
+            return str(splits_dir)
+
+    df = pd.read_csv(csv_path)
+    required = {"split", "path", "class_name"}
+    if not required.issubset(df.columns):
+        raise ValueError(
+            f"{csv_path} must contain columns {required}; found {set(df.columns)}"
+        )
+
+    root = Path(project_root)
+    copied = 0
+    for _, row in df.iterrows():
+        raw = str(row["path"]).replace("\\", "/")
+        src = Path(raw)
+        if not src.exists():
+            src = root / raw
+        if not src.exists():
+            logger.warning(f"Source image not found, skipping: {raw}")
+            continue
+        dest_dir = splits_path / str(row["split"]) / str(row["class_name"])
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dest_dir / src.name)
+        copied += 1
+
+    logger.info(f"Built {splits_dir} from {csv_path}: {copied} images copied.")
+    for s in expected_splits:
+        n = sum(1 for f in (splits_path / s).rglob("*") if f.is_file())
+        logger.info(f"  {s}: {n} images")
+    return str(splits_dir)
+
+
+def build_mobilenet_datasets(
+    splits_dir: str = "dataset_splits",
+    image_size=IMAGE_SIZE,
+    batch_size: int = 32,
+    seed: int = DEFAULT_SEED,
+    augment: bool = True,
+):
+    """
+    Build train/val/test datasets for MobileNetV2 from dataset_splits/.
+
+    - Loader: tf.keras.utils.image_dataset_from_directory (alphabetical class order)
+    - Preprocessing: mobilenet_v2.preprocess_input -> pixel range [-1, 1]
+    - Augmentation (train only, on [0,255] before preprocessing, matching the
+      trained checkpoints): horizontal flip, rotation 0.1, zoom 0.1
+
+    Returns (train_ds, val_ds, test_ds, class_names) where class_names is alphabetical.
+    """
+    from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
+
+    splits_path = Path(splits_dir)
+    train_raw = tf.keras.utils.image_dataset_from_directory(
+        splits_path / "train", image_size=image_size, batch_size=batch_size,
+        label_mode="categorical", shuffle=True, seed=seed,
+    )
+    val_raw = tf.keras.utils.image_dataset_from_directory(
+        splits_path / "val", image_size=image_size, batch_size=batch_size,
+        label_mode="categorical", shuffle=False,
+    )
+    test_raw = tf.keras.utils.image_dataset_from_directory(
+        splits_path / "test", image_size=image_size, batch_size=batch_size,
+        label_mode="categorical", shuffle=False,
+    )
+    class_names = train_raw.class_names  # alphabetical
+
+    data_aug = tf.keras.Sequential([
+        tf.keras.layers.RandomFlip("horizontal", seed=seed),
+        tf.keras.layers.RandomRotation(0.1, seed=seed),
+        tf.keras.layers.RandomZoom(0.1, seed=seed),
+    ], name="data_augmentation")
+
+    def prep_train(x, y):
+        x = data_aug(x, training=True)
+        return preprocess_input(x), y
+
+    def prep_eval(x, y):
+        return preprocess_input(x), y
+
+    train_ds = train_raw.map(prep_train if augment else prep_eval,
+                             num_parallel_calls=AUTOTUNE).prefetch(AUTOTUNE)
+    val_ds = val_raw.map(prep_eval, num_parallel_calls=AUTOTUNE).prefetch(AUTOTUNE)
+    test_ds = test_raw.map(prep_eval, num_parallel_calls=AUTOTUNE).prefetch(AUTOTUNE)
+    return train_ds, val_ds, test_ds, class_names
+
+
+def build_mobilenet_test_dataset(
+    splits_dir: str = "dataset_splits",
+    image_size=IMAGE_SIZE,
+    batch_size: int = 32,
+):
+    """
+    Build only the MobileNetV2 test dataset (preprocessed to [-1,1], no
+    augmentation, no shuffle). Returns (test_ds, class_names_alphabetical).
+    """
+    from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
+    test_raw = tf.keras.utils.image_dataset_from_directory(
+        Path(splits_dir) / "test", image_size=image_size, batch_size=batch_size,
+        label_mode="categorical", shuffle=False,
+    )
+    class_names = test_raw.class_names
+    test_ds = test_raw.map(lambda x, y: (preprocess_input(x), y),
+                           num_parallel_calls=AUTOTUNE).prefetch(AUTOTUNE)
+    return test_ds, class_names
 
 # ──────────────────────────────────────────────
 # Quick test

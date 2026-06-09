@@ -1,0 +1,15 @@
+                 precision    recall  f1-score   support
+
+ apple_overripe     1.0000    0.5000    0.6667         8
+     apple_ripe     0.6667    1.0000    0.8000         8
+   apple_unripe     1.0000    0.8750    0.9333         8
+banana_overripe     0.8750    0.8750    0.8750         8
+    banana_ripe     0.8571    0.7500    0.8000         8
+  banana_unripe     0.8889    1.0000    0.9412         8
+  pear_overripe     0.7778    0.8750    0.8235         8
+      pear_ripe     0.5455    0.7500    0.6316         8
+    pear_unripe     1.0000    0.6250    0.7692         8
+
+       accuracy                         0.8056        72
+      macro avg     0.8457    0.8056    0.8045        72
+   weighted avg     0.8457    0.8056    0.8045        72

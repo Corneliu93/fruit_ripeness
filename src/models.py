@@ -4,11 +4,17 @@ src/models.py
 Model definitions for fruit ripeness classification.
 
 Models:
-    1. BaselineCNN     – custom lightweight CNN (trained from scratch)
-    2. MobileNetV2     – transfer learning with 2-phase training strategy
+    1. BaselineCNN     - custom lightweight CNN (trained from scratch)
+    2. MobileNetV2     - transfer learning with 2-phase training strategy
 
 Usage:
-    from src.models import build_baseline_cnn, build_mobilenetv2
+    from src.models import build_baseline_cnn, build_mobilenetv2_phase1
+
+NOTE ON PREPROCESSING:
+    The MobileNetV2 builders below do NOT embed mobilenet_v2.preprocess_input
+    inside the model. Preprocessing to the [-1, 1] range is applied in the data
+    pipeline (see src.data_pipeline.build_mobilenet_datasets). This matches the
+    trained checkpoints (mobilenet_phase1_best.h5 / mobilenet_phase2_best.h5).
 """
 
 import os
@@ -17,7 +23,7 @@ from typing import Tuple, Optional
 
 import numpy as np
 
-# Lazy TF import – allows importing this module without GPU
+# Lazy TF import - allows importing this module without GPU
 try:
     import tensorflow as tf
     from tensorflow import keras
@@ -44,22 +50,11 @@ def build_baseline_cnn(
     """
     Baseline CNN architecture:
 
-        Conv(32) → BN → ReLU → MaxPool
-        Conv(64) → BN → ReLU → MaxPool
-        Conv(128) → BN → ReLU → MaxPool
-        Conv(256) → BN → ReLU → GlobalAvgPool
-        Dense(256) → Dropout → Dense(num_classes, softmax)
-
-    Args:
-        input_shape:  (H, W, C), default (224, 224, 3)
-        num_classes:  number of output classes, default 9
-        dropout_rate: dropout before final Dense
-        l2_reg:       L2 weight decay on Conv and Dense layers
-        learning_rate: Adam initial LR
-        save_summary: write model_summary_baseline.txt to saved_models/
-
-    Returns:
-        Compiled Keras model
+        Conv(32) -> BN -> ReLU -> MaxPool
+        Conv(64) -> BN -> ReLU -> MaxPool
+        Conv(128) -> BN -> ReLU -> MaxPool
+        Conv(256) -> BN -> ReLU -> GlobalAvgPool
+        Dense(256) -> Dropout -> Dense(num_classes, softmax)
     """
     reg = regularizers.l2(l2_reg)
 
@@ -116,33 +111,27 @@ def build_baseline_cnn(
 
 
 # ──────────────────────────────────────────────
-# 2. MobileNetV2 – Phase 1 (frozen base)
+# 2. MobileNetV2 - Phase 1 (frozen base, feature extraction)
 # ──────────────────────────────────────────────
 def build_mobilenetv2_phase1(
     input_shape: Tuple[int, int, int] = (*IMAGE_SIZE, 3),
     num_classes: int = NUM_CLASSES,
-    dropout_rate: float = 0.3,
+    dropout_rate: float = 0.2,
     learning_rate: float = 1e-3,
     save_summary: bool = True,
 ) -> "tf.keras.Model":
     """
-    MobileNetV2 transfer learning – Phase 1.
+    MobileNetV2 transfer learning - Phase 1 (feature extraction).
 
-    Strategy:
-        - Load MobileNetV2 pretrained on ImageNet (include_top=False)
-        - Freeze ALL base layers
-        - Add custom classification head
-        - Train head only (high LR, fast convergence)
+    Architecture (matches the trained checkpoint mobilenet_phase1_best.h5):
 
-    Args:
-        input_shape:   (H, W, C), default (224, 224, 3)
-        num_classes:   number of output classes, default 9
-        dropout_rate:  dropout before final Dense
-        learning_rate: Adam initial LR (high for head-only training)
-        save_summary:  write summary to file
+        MobileNetV2(include_top=False, weights="imagenet", frozen)
+          -> GlobalAveragePooling2D
+          -> Dropout(0.2)
+          -> Dense(num_classes, softmax)
 
-    Returns:
-        Compiled Keras model (base frozen)
+    The convolutional base is fully frozen; only the head is trained.
+    Pre-processing to [-1, 1] is performed in the data pipeline, not here.
     """
     base_model = MobileNetV2(
         input_shape=input_shape,
@@ -151,20 +140,15 @@ def build_mobilenetv2_phase1(
     )
     base_model.trainable = False  # freeze entire base
 
-    inputs = keras.Input(shape=input_shape, name="input_layer")
-
-    # MobileNetV2 preprocessing: scale to [-1, 1]
-    x = keras.applications.mobilenet_v2.preprocess_input(inputs)
-    x = base_model(x, training=False)
-
-    # Custom head
-    x = layers.GlobalAveragePooling2D(name="gap")(x)
-    x = layers.Dense(256, activation="relu", name="head_dense1")(x)
-    x = layers.Dropout(dropout_rate, name="head_dropout")(x)
-    outputs = layers.Dense(num_classes, activation="softmax",
-                           name="output")(x)
-
-    model = keras.Model(inputs, outputs, name="MobileNetV2_Phase1")
+    model = keras.Sequential(
+        [
+            base_model,
+            layers.GlobalAveragePooling2D(name="gap"),
+            layers.Dropout(dropout_rate, name="dropout"),
+            layers.Dense(num_classes, activation="softmax", name="predictions"),
+        ],
+        name="mobilenetv2_phase1",
+    )
 
     model.compile(
         optimizer=keras.optimizers.Adam(learning_rate=learning_rate),
@@ -176,87 +160,82 @@ def build_mobilenetv2_phase1(
         os.makedirs("saved_models", exist_ok=True)
         save_model_summary(model, "saved_models/model_summary_mobilenet_phase1.txt")
 
-    # Print freeze status
-    trainable = sum(
-        np.prod(w.shape) for w in model.trainable_weights
-    )
-    total = sum(
-        np.prod(w.shape) for w in model.weights
-    )
-    print(f"[models] Phase 1 – Trainable params: {trainable:,} / {total:,}")
+    trainable = int(sum(np.prod(w.shape) for w in model.trainable_weights))
+    total     = int(sum(np.prod(w.shape) for w in model.weights))
+    print(f"[models] Phase 1 - Trainable params: {trainable:,} / {total:,}")
 
     return model
 
 
 # ──────────────────────────────────────────────
-# 3. MobileNetV2 – Phase 2 (fine-tuning)
+# 3. MobileNetV2 - Phase 2 (fine-tuning)
 # ──────────────────────────────────────────────
 def build_mobilenetv2_finetune(
     phase1_model_path: str,
-    unfreeze_top_pct: float = 0.20,
+    fine_tune_at: int = 100,
     learning_rate: float = 1e-5,
     save_summary: bool = True,
 ) -> "tf.keras.Model":
     """
-    MobileNetV2 fine-tuning – Phase 2.
+    MobileNetV2 fine-tuning - Phase 2 (matches mobilenet_phase2_best.h5).
 
     Strategy:
-        - Load Phase 1 model weights
-        - Unfreeze top `unfreeze_top_pct` (20%) of base layers
-        - Re-compile with low LR for fine-tuning
+        - Load the Phase 1 model.
+        - Unfreeze base layers from index `fine_tune_at` (default 100) onward,
+          following the TensorFlow transfer-learning guidance; layers below stay
+          frozen to preserve generic low-level features.
+        - Keep EVERY BatchNormalization layer frozen (inference mode), so the
+          ImageNet population statistics are not corrupted on a small dataset.
+        - Recompile with a low learning rate (default 1e-5).
 
     Args:
-        phase1_model_path:  path to saved mobilenet_phase1.h5
-        unfreeze_top_pct:   fraction of base layers to unfreeze (0.20 = top 20%)
-        learning_rate:      Adam LR (low for fine-tuning, default 1e-5)
-        save_summary:       write summary to file
-
-    Returns:
-        Compiled Keras model (top 20% of base unfrozen)
+        phase1_model_path: path to the saved Phase 1 model.
+        fine_tune_at:      first base-layer index to unfreeze.
+        learning_rate:     Adam LR for fine-tuning.
     """
-    # Load Phase 1 model
-    model = keras.models.load_model(phase1_model_path)
+    model = keras.models.load_model(phase1_model_path, compile=False)
     print(f"[models] Loaded Phase 1 model from {phase1_model_path}")
 
-    # Find the MobileNetV2 base layer
-    base_model = None
-    for layer in model.layers:
-        if "mobilenetv2" in layer.name.lower():
-            base_model = layer
-            break
-
-    if base_model is None:
-        raise ValueError("Could not find MobileNetV2 base layer in loaded model.")
-
-    # Unfreeze top `unfreeze_top_pct` of base layers
-    n_layers   = len(base_model.layers)
-    n_unfreeze = max(1, int(n_layers * unfreeze_top_pct))
-    freeze_until = n_layers - n_unfreeze
+    base_model = model.layers[0]
+    if not isinstance(base_model, keras.Model) or len(base_model.layers) < 100:
+        raise ValueError(
+            "Expected the MobileNetV2 base as the first layer of the model."
+        )
 
     base_model.trainable = True
-    for i, layer in enumerate(base_model.layers):
-        layer.trainable = (i >= freeze_until)
 
-    frozen = sum(1 for l in base_model.layers if not l.trainable)
-    unfrozen = sum(1 for l in base_model.layers if l.trainable)
-    print(f"[models] Phase 2 – Base layers: {frozen} frozen | {unfrozen} unfrozen")
+    # Freeze everything before the fine-tune cutoff
+    for layer in base_model.layers[:fine_tune_at]:
+        layer.trainable = False
 
-    # Re-compile with low LR
+    # Keep every BatchNormalization layer frozen regardless of position
+    bn_frozen = 0
+    for layer in base_model.layers:
+        if isinstance(layer, keras.layers.BatchNormalization):
+            layer.trainable = False
+            bn_frozen += 1
+
     model.compile(
         optimizer=keras.optimizers.Adam(learning_rate=learning_rate),
         loss="categorical_crossentropy",
         metrics=["accuracy"],
     )
 
+    unfrozen = sum(1 for l in base_model.layers if l.trainable)
+    frozen   = sum(1 for l in base_model.layers if not l.trainable)
+    print(f"[models] Phase 2 - cutoff={fine_tune_at} | "
+          f"base layers: {frozen} frozen, {unfrozen} unfrozen | "
+          f"BatchNorm frozen: {bn_frozen}")
+
     if save_summary:
         os.makedirs("saved_models", exist_ok=True)
         save_model_summary(
-            model, "saved_models/model_summary_mobilenet_finetuned.txt"
+            model, "saved_models/model_summary_mobilenet_phase2.txt"
         )
 
-    trainable = sum(np.prod(w.shape) for w in model.trainable_weights)
-    total     = sum(np.prod(w.shape) for w in model.weights)
-    print(f"[models] Phase 2 – Trainable params: {trainable:,} / {total:,}")
+    trainable = int(sum(np.prod(w.shape) for w in model.trainable_weights))
+    total     = int(sum(np.prod(w.shape) for w in model.weights))
+    print(f"[models] Phase 2 - Trainable params: {trainable:,} / {total:,}")
 
     return model
 
@@ -277,9 +256,6 @@ def get_model(
         model_name:        "baseline" | "mobilenet"
         phase:             for mobilenet: "phase1" | "finetune"
         phase1_model_path: required when phase="finetune"
-
-    Returns:
-        Compiled Keras model
     """
     if model_name == "baseline":
         return build_baseline_cnn(**kwargs)
