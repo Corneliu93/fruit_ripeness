@@ -1,68 +1,105 @@
-MANIFEST – Week 3
+MANIFEST – Week 7
 =================
-Project: Image-based Fruit Ripeness Classification
-Week: 6 / 10
-Date: 2026
+Project : Image-Based Fruit Ripeness Classification using CNNs and Transfer Learning
+Student : Corneliu Rosca (STU141830)
+Week    : 7 / 10
+Date    : June 2026
 
-FILES DELIVERED:
-----------------
-README.md                                  – Project documentation + run commands
-requirements.txt                           – Exact Python dependencies
-.gitignore                                 – Git ignore patterns
-
-dataset/
-  capture_instructions.txt                – Photo capture protocol
-  metadata.csv                            – Dataset metadata template (updated)
-  apple/unripe/                           – Populated folder (contains dataset images)
-  apple/ripe/                             – Populated folder (contains dataset images)
-  apple/overripe/                         – Populated folder (contains dataset images)
-  banana/unripe/                          – Populated folder (contains dataset images)
-  banana/ripe/                            – Populated folder (contains dataset images)
-  banana/overripe/                        – Populated folder (contains dataset images)
-  pear/unripe/                            – Populated folder (contains dataset images)
-  pear/ripe/                              – Populated folder (contains dataset images)
-  pear/overripe/                          – Populated folder (contains dataset images)
-
-dataset_splits/
-  train/  → 9 clase, 315 imagini          – Populated folder (contains dataset images)
-  val/    →  9 clase,  63 imagini         – Populated folder (contains dataset images)
-  test/   →  9 clase,  72 imagini         – Populated folder (contains dataset images)
+Status key:  [Done] delivered and verified    [Pending] scheduled for a later week
 
 
-dataset_check.py                          – Dataset validation + visualization
+ROOT
+----
+README.md                                    – Project documentation and run commands          ✅ Done
+requirements.txt                             – Exact Python dependencies                       ✅ Done
+.gitignore                                   – Git ignore patterns                             ✅ Done
+manifest.txt                                 – This file                                       ✅ Done
+dataset_check.py                             – Dataset validation and visualisation            ✅ Done
+rename_images.py                             – Bulk image-renaming utility                     ✅ Done
+check_split.py                               – Train/val/test split sanity check               ✅ Done
 
-src/
-  utils.py                                – Shared utilities, seeds, constants
-  models.py                               – BaselineCNN + MobileNetV2 architectures
-  train.py                                – Training script (CLI args)
-  evaluate.py                             – Evaluation: metrics, confusion matrix, ROC, Grad-CAM
-  data_pipeline.py                        – tf.data pipeline + augmentation + synthetic generator
 
-web_app/
-  app.py                                  – Flask demo application
-  templates/index.html                    – Web UI for image upload + prediction
+DATA
+----
+dataset/                                     – Original captured images (git-ignored)
+  capture_instructions.txt                    – Photo capture protocol                         ✅ Done
+  metadata.csv                               – Dataset metadata                                ✅ Done
+  apple|banana|pear / {unripe,ripe,overripe} – 9 class folders, ~50 images each                ✅ Done
 
-manifest.txt                              – This file
+dataset_splits/                              – Derived split (git-ignored), built by
+                                               src.data_pipeline.build_dataset_splits_from_csv
+  train/  (9 class folders, 315 images)                                                        ✅ Done
+  val/    (9 class folders,  63 images)                                                        ✅ Done
+  test/   (9 class folders,  72 images)                                                        ✅ Done
 
-PENDING (future weeks):
------------------------
-notebooks/01_data_preprocessing.ipynb           – Week 2 ✅ Done
-notebooks/02_train_baseline.ipynb               – Week 3 ✅ Done
-notebooks/03_evaluation_baseline.ipynb          – Week 4 ✅ Done
-notebooks/04_train_mobilenetv2_phase1.ipynb     – Week 5 ✅ Done
-notebooks/05_train_mobilenetv2_phase2.ipynb     – Week 6 ✅ Done
-notebooks/06_evaluation.ipynb                   – Week 7
-saved_models/baseline_best.h5                   – Week 3 ✅ Done
-saved_models/mobilenet_phase1_best.h5           – Week 5 ✅ Done
-saved_models/mobilenet_phase2_best.h5           – Week 6 ✅ Done
-results/results.csv                             – Week 7
-report.pdf / report.md                          – Week 9
-slides.pdf                                      – Week 9
-final_submission.zip                            – Week 10
 
-REPRODUCE EVALUATION (after all training):
-------------------------------------------
-python src/evaluate.py \
-  --model_path saved_models/mobilenet_finetuned.h5 \
-  --data_dir ./dataset \
-  --output results/
+SOURCE (src/)
+-------------
+utils.py                                     – Shared utilities, class order, seed management  ✅ Done
+models.py                                    – Baseline CNN and MobileNetV2 builders           ✅ Done
+data_pipeline.py                             – Baseline and MobileNetV2 tf.data pipelines      ✅ Done
+train.py                                     – Training script (CLI; baseline path)            ✅ Done
+evaluate.py                                  – Metrics, confusion matrix, ROC, Grad-CAM        ✅ Done
+
+
+NOTEBOOKS (notebooks/)
+----------------------
+01_data_preprocessing.ipynb                  – Week 2                                          ✅ Done
+02_train_baseline.ipynb                      – Week 3                                          ✅ Done
+03_evaluation_baseline.ipynb                 – Week 4                                          ✅ Done
+04_train_mobilenetv2_phase1.ipynb            – Week 5                                          ✅ Done
+05_train_mobilenetv2_phase2.ipynb            – Week 6                                          ✅ Done
+06_evaluation_mobilenetv2.ipynb              – Week 7                                          ✅ Done
+07_gradcam_mobilenetv2.ipynb                 – Week 7                                          ✅ Done
+
+
+MODELS (saved_models/, git-ignored)
+-----------------------------------
+baseline_best.h5                             – Week 3                                          ✅ Done
+mobilenet_phase1_best.h5                     – Week 5                                          ✅ Done
+mobilenet_phase2_best.h5                     – Week 6 (final model)                            ✅ Done
+
+
+RESULTS (results/, generated artefacts git-ignored)
+---------------------------------------------------
+data_split.csv, results.csv, class_names.json                                                  ✅ Done
+history_baseline.csv, history_mobilenet_phase1.csv, history_mobilenet_phase2.csv               ✅ Done
+classification_report_{baseline, mobilenet_phase1, mobilenet_phase2}.txt                       ✅ Done
+confusion_matrix_{baseline, mobilenet_phase1, mobilenet_phase2}.png                            ✅ Done
+roc_curves_{baseline, mobilenet_phase1, mobilenet_phase2}.png                                  ✅ Done
+mobilenet_phase1_training_curves.png, mobilenet_phase2_training_curves.png                     ✅ Done
+training_curves_baseline.png                                                                   ✅ Done
+gradcam_mobilenet_phase2.png                                                                   ✅ Done
+test_evaluation_comparison.csv                                                                 ✅ Done
+EDA: raw_samples.png, preprocessing_demo.png, augmentation_demo.png, training_batch_sample.png ✅ Done
+
+
+WEB APP (web_app/)
+------------------
+app.py                                       – Flask demo application (skeleton)               [Pending – Week 8]
+templates/index.html                         – Upload-and-predict UI                           [Pending – Week 8]
+static/uploads/                              – Runtime upload directory                        [Pending – Week 8]
+model/                                       – Deployed copy of mobilenet_phase2_best.h5       [Pending – Week 8]
+
+
+REPORT AND SUBMISSION
+---------------------
+STU141830_Project_Report.docx                – Final report                                   [In progress – Week 9]
+slides                                       – Presentation                                    [Pending – Week 9]
+final_submission.zip                         – Packaged submission                             [Pending – Week 10]
+
+
+TEST-SET RESULTS (Week 7, held-out test set, 72 images)
+-------------------------------------------------------
+Baseline CNN          : accuracy 9.72%   | macro F1 0.0511 | macro AUC 0.7212
+MobileNetV2 Phase 1   : accuracy 81.94%  | macro F1 0.8182 | macro AUC 0.9870
+MobileNetV2 Phase 2   : accuracy 83.33%  | macro F1 0.8322 | macro AUC 0.9909  (final model)
+
+
+REPRODUCE THE FINAL EVALUATION
+------------------------------
+# From the project root, with the virtual environment active.
+# MobileNetV2 training is reproduced by running notebooks 04 and 05;
+# the test-set evaluation of the final model is reproduced by:
+
+python src/evaluate.py --model_kind mobilenet --model_path saved_models/mobilenet_phase2_best.h5 --splits_dir dataset_splits --output results/
