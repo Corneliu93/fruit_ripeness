@@ -196,13 +196,13 @@ for `dataset_splits/`.
 | Week | Milestone | Status |
 |------|-----------|--------|
 | 1 | Repository skeleton and structure | ✅ Done |
-| 2 | Dataset and data pipeline | ✅ Done |
-| 3 | Baseline CNN trained | ✅ Done |
-| 4 | Baseline evaluation | ✅ Done |
-| 5 | MobileNetV2 Phase 1 | ✅ Done |
-| 6 | MobileNetV2 fine-tuned | ✅ Done |
-| 7 | Full evaluation + Grad-CAM | ✅ Done |
-| 8 | Flask demo | Pending |
+| 2 | Dataset and data pipeline         | ✅ Done |
+| 3 | Baseline CNN trained              | ✅ Done |
+| 4 | Baseline evaluation               | ✅ Done |
+| 5 | MobileNetV2 Phase 1               | ✅ Done |
+| 6 | MobileNetV2 fine-tuned            | ✅ Done |
+| 7 | Full evaluation + Grad-CAM        | ✅ Done |
+| 8 | Flask demo                        | ✅ Done |
 | 9 | Report + slides | Pending |
 | 10 | Final submission | Pending |
 

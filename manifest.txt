@@ -2,7 +2,7 @@ MANIFEST – Week 7
 =================
 Project : Image-Based Fruit Ripeness Classification using CNNs and Transfer Learning
 Student : Corneliu Rosca (STU141830)
-Week    : 7 / 10
+Week    : 8 / 10
 Date    : June 2026
 
 Status key:  [Done] delivered and verified    [Pending] scheduled for a later week
@@ -76,10 +76,10 @@ EDA: raw_samples.png, preprocessing_demo.png, augmentation_demo.png, training_ba
 
 WEB APP (web_app/)
 ------------------
-app.py                                       – Flask demo application (skeleton)               [Pending – Week 8]
-templates/index.html                         – Upload-and-predict UI                           [Pending – Week 8]
-static/uploads/                              – Runtime upload directory                        [Pending – Week 8]
-model/                                       – Deployed copy of mobilenet_phase2_best.h5       [Pending – Week 8]
+app.py                                       – Flask demo application (skeleton)               ✅ Done
+templates/index.html                         – Upload-and-predict UI                           ✅ Done
+static/uploads/                              – Runtime upload directory                        ✅ Done
+model/                                       – Deployed copy of mobilenet_phase2_best.h5       ✅ Done
 
 
 REPORT AND SUBMISSION
