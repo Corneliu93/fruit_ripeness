@@ -10,7 +10,6 @@ Usage:
 Features:
     - Upload image via browser
     - Real-time prediction with confidence scores
-    - Grad-CAM overlay visualization
 """
 
 import os
@@ -29,12 +28,23 @@ app.config["UPLOAD_FOLDER"]    = Path(__file__).parent / "static" / "uploads"
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MB max
 
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "bmp", "webp"}
-MODEL_PATH = Path(__file__).parent / "model" / "mobilenet_finetuned.h5"
 
+# Locate the model: prefer the deployed copy in web_app/model/, then fall back
+# to the project's saved_models/ so the app runs without an extra copy step.
+_MODEL_CANDIDATES = [
+    Path(__file__).parent / "model" / "mobilenet_phase2_best.h5",
+    Path(__file__).parent.parent / "saved_models" / "mobilenet_phase2_best.h5",
+]
+MODEL_PATH = next((p for p in _MODEL_CANDIDATES if p.exists()), _MODEL_CANDIDATES[0])
+
+# Class order MUST match the model's output order. The model was trained with
+# image_dataset_from_directory, which orders classes ALPHABETICALLY, so output
+# index i corresponds to CLASS_NAMES[i] below (this is the alphabetical order
+# from src.utils, not the canonical fruit-then-ripeness order).
 CLASS_NAMES = [
-    "apple_unripe", "apple_ripe", "apple_overripe",
-    "banana_unripe", "banana_ripe", "banana_overripe",
-    "pear_unripe", "pear_ripe", "pear_overripe",
+    "apple_overripe", "apple_ripe", "apple_unripe",
+    "banana_overripe", "banana_ripe", "banana_unripe",
+    "pear_overripe", "pear_ripe", "pear_unripe",
 ]
 IMAGE_SIZE = (224, 224)
 
@@ -46,8 +56,9 @@ def load_model():
     """Load model once at startup."""
     global model
     if not MODEL_PATH.exists():
-        print(f"⚠️  Model not found at {MODEL_PATH}")
-        print("   Train the model first, then copy it to web_app/model/")
+        print(f"⚠️  Model not found. Searched: "
+              f"{', '.join(str(p) for p in _MODEL_CANDIDATES)}")
+        print("   Copy mobilenet_phase2_best.h5 to web_app/model/ or saved_models/.")
         return False
     import tensorflow as tf
     model = tf.keras.models.load_model(str(MODEL_PATH))
@@ -61,11 +72,18 @@ def allowed_file(filename: str) -> bool:
 
 
 def preprocess_image(image_path: str) -> np.ndarray:
-    """Load and preprocess image for inference."""
+    """Load and preprocess image for inference.
+
+    The model has no embedded preprocessing and was trained on inputs scaled to
+    [-1, 1] by mobilenet_v2.preprocess_input, so the same scaling is applied here.
+    Bilinear resizing matches the interpolation used by image_dataset_from_directory.
+    """
     from PIL import Image
-    img = Image.open(image_path).convert("RGB").resize(IMAGE_SIZE)
-    arr = np.array(img, dtype=np.float32) / 255.0
-    return np.expand_dims(arr, 0)  # (1, H, W, C)
+    from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
+    img = Image.open(image_path).convert("RGB").resize(IMAGE_SIZE, Image.BILINEAR)
+    arr = np.array(img, dtype=np.float32)          # range [0, 255]
+    arr = preprocess_input(arr)                     # -> range [-1, 1]
+    return np.expand_dims(arr, 0)                   # (1, H, W, C)
 
 
 def predict_image(image_path: str) -> dict:
@@ -143,4 +161,5 @@ if __name__ == "__main__":
     load_model()
     print("\n🍎 Fruit Ripeness Classifier – Flask Demo")
     print("   http://127.0.0.1:5000\n")
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    # debug=False so the model is loaded once; the reloader would load it twice.
+    app.run(host="127.0.0.1", port=5000, debug=False)
