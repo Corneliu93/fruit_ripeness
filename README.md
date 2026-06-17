@@ -203,8 +203,8 @@ for `dataset_splits/`.
 | 6 | MobileNetV2 fine-tuned            | ✅ Done |
 | 7 | Full evaluation + Grad-CAM        | ✅ Done |
 | 8 | Flask demo                        | ✅ Done |
-| 9 | Report + slides | Pending |
-| 10 | Final submission | Pending |
+| 9 | Report                            | ✅ Done |
+| 10 | Final submission                 | ✅ Done |
 
 ---
 
