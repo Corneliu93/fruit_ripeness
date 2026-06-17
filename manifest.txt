@@ -2,7 +2,7 @@ MANIFEST – Week 7
 =================
 Project : Image-Based Fruit Ripeness Classification using CNNs and Transfer Learning
 Student : Corneliu Rosca (STU141830)
-Week    : 8 / 10
+Week    : 10 / 10
 Date    : June 2026
 
 Status key:  [Done] delivered and verified    [Pending] scheduled for a later week
@@ -84,9 +84,9 @@ model/                                       – Deployed copy of mobilenet_phas
 
 REPORT AND SUBMISSION
 ---------------------
-STU141830_Project_Report.docx                – Final report                                   [In progress – Week 9]
-slides                                       – Presentation                                    [Pending – Week 9]
-final_submission.zip                         – Packaged submission                             [Pending – Week 10]
+STU141830_Project_Report.docx                – Final report                                    ✅ Done
+The project artefact, is publicly available at: https://github.com/Corneliu93/fruit_ripeness   ✅ Done
+STU141830_Project_Report.docx                – Packaged submission                             ✅ Done
 
 
 TEST-SET RESULTS (Week 7, held-out test set, 72 images)
